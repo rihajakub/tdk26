@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TDK 2026 — Předpověď počasí</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface2: #e8ebf0;
+    --border: #d4d9e2;
+    --accent: #4a7a00;
+    --accent2: #c94010;
+    --accent3: #1a7fa8;
+    --text: #1a1e26;
+    --muted: #7a8799;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px 60px; }
+
+  header { margin-bottom: 48px; }
+  .header-label { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(56px, 12vw, 96px); line-height: 0.9; color: var(--text); margin-bottom: 8px; }
+  h1 span.accent { color: var(--accent); }
+  .header-sub { font-size: 13px; color: var(--muted); font-weight: 300; letter-spacing: 0.04em; margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+  .header-sub::before { content: ''; display: block; width: 32px; height: 1px; background: var(--accent); flex-shrink: 0; }
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; }
+
+  .section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .section-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+  .section-hint { font-size: 11px; color: var(--muted); opacity: 0.6; }
+
+  .forecast-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 40px; }
+  @media (max-width: 600px) { .forecast-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .fc-card { background: var(--surface); padding: 22px 20px; position: relative; overflow: hidden; transition: background 0.2s; }
+  .fc-card:hover { background: var(--surface2); }
+  .fc-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: transparent; transition: background 0.3s; }
+  .fc-card:hover::after { background: var(--accent); }
+  .fc-day { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .fc-icon { font-size: 28px; margin-bottom: 10px; }
+  .fc-temp { font-family: 'Bebas Neue', sans-serif; font-size: 46px; line-height: 1; color: var(--text); margin-bottom: 5px; }
+  .fc-temp .unit { font-size: 19px; color: var(--muted); margin-left: 3px; }
+  .fc-desc { font-size: 12px; color: var(--muted); font-weight: 300; margin-bottom: 8px; }
+  .fc-rain { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent3); }
+  .fc-meta { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .fc-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .fc-meta-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .fc-meta-value { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text); }
+  .fc-meta-value.low { color: var(--accent2); }
+  .fc-meta-value.mid { color: #b8860b; }
+  .fc-meta-value.high { color: var(--accent); }
+
+  .chart-section { margin-bottom: 40px; }
+  .chart-wrap { background: var(--surface); padding: 28px 16px 16px; position: relative; }
+  canvas { display: block; width: 100%; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; margin-bottom: 2px; }
+  .stats-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 40px; }
+  @media (max-width: 600px) { .stats-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card { background: var(--surface); padding: 22px 26px; position: relative; overflow: hidden; transition: background 0.2s; }
+  .stat-card:hover { background: var(--surface2); }
+  .stat-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: transparent; transition: background 0.3s; }
+  .stat-card:hover::after { background: var(--accent); }
+  .stat-icon { font-size: 17px; margin-bottom: 10px; opacity: 0.7; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 46px; line-height: 1; color: var(--text); margin-bottom: 5px; }
+  .stat-value .unit { font-size: 19px; color: var(--muted); margin-left: 3px; }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+  .stat-card.highlight .stat-value { color: var(--accent); }
+  .stat-card.red .stat-value { color: var(--accent2); }
+  .stat-card.blue .stat-value { color: var(--accent3); }
+
+  .info-box { background: var(--surface); padding: 22px 26px; margin-bottom: 40px; border-left: 3px solid var(--accent); }
+  .info-box p { font-size: 13px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+  .info-box strong { color: var(--text); font-weight: 500; }
+
+  .history-table { width: 100%; background: var(--surface); border-collapse: collapse; margin-bottom: 40px; }
+  .history-table th { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; }
+  .history-table td { font-size: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .history-table tr:hover td { background: var(--surface2); }
+  .history-table .mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+  .history-table .muted { color: var(--muted); }
+
+  .back-link { display: inline-flex; align-items: center; gap: 8px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); text-decoration: none; margin-bottom: 24px; }
+  .back-link:hover { text-decoration: underline; }
+
+  footer { border-top: 1px solid var(--border); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; }
+  .footer-text { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .footer-dots { display: flex; gap: 6px; }
+  .footer-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+  .footer-dots span:first-child { background: var(--accent); }
+
+  .loading { text-align: center; padding: 60px 20px; }
+  .loading-text { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+  .error-box { background: var(--surface); padding: 22px 26px; margin-bottom: 40px; border-left: 3px solid var(--accent2); }
+  .error-box p { font-size: 13px; color: var(--accent2); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <a href="index.html" class="back-link">&larr; Zpět na trasu</a>
+
+  <header>
+    <div class="header-label">Předpověď počasí</div>
+    <h1>POČASÍ <span class="accent">TOUR</span></h1>
+    <div class="header-sub">Jablonec nad Nisou / Kokonín &mdash; 13.&ndash;16. srpna 2026</div>
+    <div class="tags">
+      <span class="tag">Open-Meteo API</span>
+      <span class="tag" id="tag-source">Seasonal forecast</span>
+      <span class="tag" id="tag-updated">Aktualizace: &mdash;</span>
+    </div>
+  </header>
+
+  <div id="loading" class="loading">
+    <div class="loading-text">Načítám data&hellip;</div>
+  </div>
+
+  <div id="content" style="display:none;">
+
+    <!-- Aktuální předpověď -->
+    <div class="section-header">
+      <span class="section-title">Aktuální předpověď</span>
+      <span class="section-hint" id="hint-days"></span>
+    </div>
+    <div class="forecast-grid" id="forecast-cards"></div>
+
+    <!-- Souhrnné statistiky -->
+    <div class="stats-grid-4" id="summary-stats"></div>
+
+    <!-- Graf konvergence teploty -->
+    <div class="chart-section">
+      <div class="section-header">
+        <span class="section-title">Vývoj předpovědi teploty</span>
+        <span class="section-hint">Jak se mění předpověď v čase</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-temp" height="280"></canvas>
+      </div>
+    </div>
+
+    <!-- Graf srážek -->
+    <div class="chart-section">
+      <div class="section-header">
+        <span class="section-title">Srážky</span>
+        <span class="section-hint">mm za den</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-rain" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Graf spolehlivosti -->
+    <div class="chart-section">
+      <div class="section-header">
+        <span class="section-title">Spolehlivost předpovědi</span>
+        <span class="section-hint">Roste s blížícím se datem</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-reliability" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div class="info-box" id="info-box">
+      <p>Data se aktualizují <strong>každý den</strong> pomocí Google Apps Script.
+      Zdroj: <strong>open-meteo.com</strong> (Seasonal Forecast API pro vzdálené předpovědi, Forecast API od 16 dnů předem).
+      Rozptyl teploty ukazuje shodu klimatických modelů &mdash; nižší = vyšší jistota.</p>
+    </div>
+
+    <!-- Tabulka historie -->
+    <div class="section-header">
+      <span class="section-title">Historie měření</span>
+      <span class="section-hint" id="hint-rows"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="history-table" id="history-table">
+        <thead>
+          <tr>
+            <th>Záznam</th>
+            <th>Den</th>
+            <th>Dní</th>
+            <th>Teplota</th>
+            <th>Počasí</th>
+            <th>Srážky</th>
+            <th>P(srážky)</th>
+            <th>Spolehl.</th>
+            <th>Rozptyl</th>
+            <th>Typ</th>
+          </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div id="error" class="error-box" style="display:none;">
+    <p id="error-msg"></p>
+  </div>
+
+  <footer>
+    <span class="footer-text">TDK 2026 &mdash; Počasí dashboard</span>
+    <div class="footer-dots"><span></span><span></span><span></span></div>
+  </footer>
+</div>
+
+<script>
+var CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGBMJSMOcuAc-0Ly3bYMB3t8nfHXB0V10Sn9MZxS0pAlH-nHnxngspspYUxJ5qacfj0N3meRLVjgJG/pub?gid=2049867830&single=true&output=csv';
+
+var TARGET_DAYS = ['13.08.2026', '14.08.2026', '15.08.2026', '16.08.2026'];
+var DAY_LABELS = ['St 13.8.', 'Čt 14.8.', 'Pá 15.8.', 'So 16.8.'];
+var DAY_NAMES = ['Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
+
+var COLORS = {
+  green: '#4a7a00',
+  red: '#c94010',
+  blue: '#1a7fa8',
+  muted: '#7a8799',
+  border: '#d4d9e2',
+  greenLight: 'rgba(74,122,0,0.12)',
+  redLight: 'rgba(201,64,16,0.12)',
+  blueLight: 'rgba(26,127,168,0.12)',
+};
+
+function weatherIcon(desc) {
+  if (!desc) return '';
+  var d = desc.toLowerCase();
+  if (d.indexOf('jasno') !== -1 || d.indexOf('slunečno') !== -1) return '☀️';
+  if (d.indexOf('polojasno') !== -1 || d.indexOf('oblačno') !== -1) return '⛅';
+  if (d.indexOf('bouřk') !== -1) return '⛈️';
+  if (d.indexOf('přeháň') !== -1) return '🌦️';
+  if (d.indexOf('déšť') !== -1 || d.indexOf('sráž') !== -1) return '🌧️';
+  if (d.indexOf('zataženo') !== -1) return '☁️';
+  return '⛅';
+}
+
+function parseNum(s) {
+  if (s == null || s === '') return null;
+  return parseFloat(String(s).replace(',', '.'));
+}
+
+function reliabilityClass(v) {
+  if (v >= 70) return 'high';
+  if (v >= 30) return 'mid';
+  return 'low';
+}
+
+function loadData() {
+  Papa.parse(CSV_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      if (!results.data || results.data.length === 0) {
+        showError('Nepodařilo se načíst data z Google Sheets.');
+        return;
+      }
+      processData(results.data);
+    },
+    error: function(err) {
+      showError('Chyba při načítání CSV: ' + err.message);
+    }
+  });
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error').style.display = 'block';
+  document.getElementById('error-msg').textContent = msg;
+}
+
+function processData(rows) {
+  var data = rows.map(function(r) {
+    return {
+      zaznam:     r['datum_zaznamu'] || '',
+      den:        r['predikovany_den'] || '',
+      dny:        parseNum(r['dny_predem']),
+      teplota:    parseNum(r['teplota_C']),
+      popis:      r['popis_pocasi'] || '',
+      srazky:     parseNum(r['srazky_mm']),
+      srazkyP:    parseNum(r['srazky_pravdepodobnost_%']),
+      spoleh:     parseNum(r['spolehlivost_%']),
+      rozptyl:    parseNum(r['rozptyl_teploty_C']),
+      typ:        r['typ_udaje'] || '',
+      zdroj:      r['zdroj'] || ''
+    };
+  }).filter(function(d) { return d.den && d.teplota != null; });
+
+  if (data.length === 0) {
+    showError('V tabulce nejsou žádná platná data.');
+    return;
+  }
+
+  var latestZaznam = data[data.length - 1].zaznam;
+  var latestRows = data.filter(function(d) { return d.zaznam === latestZaznam; });
+
+  var byDay = {};
+  TARGET_DAYS.forEach(function(day) { byDay[day] = []; });
+  data.forEach(function(d) {
+    if (byDay[d.den]) byDay[d.den].push(d);
+  });
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+
+  document.getElementById('tag-updated').textContent = 'Aktualizace: ' + latestZaznam;
+  var src = latestRows[0] ? latestRows[0].zdroj : '';
+  document.getElementById('tag-source').textContent = src;
+
+  var minDny = latestRows.length > 0 ? latestRows[0].dny : null;
+  if (minDny != null) {
+    document.getElementById('hint-days').textContent = minDny + ' dní do startu';
+  }
+  document.getElementById('hint-rows').textContent = data.length + ' záznamů';
+
+  renderCards(latestRows);
+  renderSummary(latestRows);
+  renderTempChart(byDay);
+  renderRainChart(byDay);
+  renderReliabilityChart(byDay);
+  renderHistory(data);
+}
+
+function renderCards(rows) {
+  var container = document.getElementById('forecast-cards');
+  container.innerHTML = '';
+
+  TARGET_DAYS.forEach(function(day, i) {
+    var r = null;
+    for (var j = 0; j < rows.length; j++) {
+      if (rows[j].den === day) { r = rows[j]; break; }
+    }
+
+    var card = document.createElement('div');
+    card.className = 'fc-card';
+
+    if (!r) {
+      card.innerHTML = '<div class="fc-day">' + DAY_LABELS[i] + '</div><div class="fc-desc">Bez dat</div>';
+      container.appendChild(card);
+      return;
+    }
+
+    var rainText = r.srazky != null ? r.srazky.toFixed(1) + ' mm' : '';
+    if (r.srazkyP != null) rainText += ' (' + r.srazkyP + '%)';
+
+    var spolehCls = reliabilityClass(r.spoleh || 0);
+
+    card.innerHTML =
+      '<div class="fc-day">' + DAY_NAMES[i] + ' ' + day.split('.').slice(0,2).join('.') + '</div>' +
+      '<div class="fc-icon">' + weatherIcon(r.popis) + '</div>' +
+      '<div class="fc-temp">' + r.teplota.toFixed(1) + '<span class="unit">°C</span></div>' +
+      '<div class="fc-desc">' + r.popis + '</div>' +
+      (rainText ? '<div class="fc-rain">💧 ' + rainText + '</div>' : '') +
+      '<div class="fc-meta">' +
+        '<div class="fc-meta-row"><span class="fc-meta-label">Spolehl.</span><span class="fc-meta-value ' + spolehCls + '">' + (r.spoleh != null ? r.spoleh + '%' : '—') + '</span></div>' +
+        (r.rozptyl != null ? '<div class="fc-meta-row"><span class="fc-meta-label">Rozptyl</span><span class="fc-meta-value">±' + r.rozptyl.toFixed(1) + '°C</span></div>' : '') +
+      '</div>';
+
+    container.appendChild(card);
+  });
+}
+
+function renderSummary(rows) {
+  var container = document.getElementById('summary-stats');
+  var temps = rows.map(function(r) { return r.teplota; }).filter(function(t) { return t != null; });
+  var rains = rows.map(function(r) { return r.srazky; }).filter(function(t) { return t != null; });
+  var spolehs = rows.map(function(r) { return r.spoleh; }).filter(function(t) { return t != null; });
+
+  var avgTemp = temps.length > 0 ? temps.reduce(function(a,b){return a+b;},0) / temps.length : 0;
+  var maxTemp = temps.length > 0 ? Math.max.apply(null, temps) : 0;
+  var totalRain = rains.reduce(function(a,b){return a+b;},0);
+  var avgSpoleh = spolehs.length > 0 ? spolehs.reduce(function(a,b){return a+b;},0) / spolehs.length : 0;
+
+  container.innerHTML =
+    '<div class="stat-card highlight"><div class="stat-icon">🌡️</div><div class="stat-value">' + avgTemp.toFixed(1) + '<span class="unit">°C</span></div><div class="stat-label">Průměrná teplota</div></div>' +
+    '<div class="stat-card red"><div class="stat-icon">🔥</div><div class="stat-value">' + maxTemp.toFixed(1) + '<span class="unit">°C</span></div><div class="stat-label">Maximum</div></div>' +
+    '<div class="stat-card blue"><div class="stat-icon">💧</div><div class="stat-value">' + totalRain.toFixed(1) + '<span class="unit">mm</span></div><div class="stat-label">Celkové srážky</div></div>' +
+    '<div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-value">' + avgSpoleh.toFixed(0) + '<span class="unit">%</span></div><div class="stat-label">Spolehlivost</div></div>';
+}
+
+function renderTempChart(byDay) {
+  var ctx = document.getElementById('chart-temp').getContext('2d');
+  var datasets = [];
+  var dayColors = [COLORS.green, COLORS.red, COLORS.blue, COLORS.muted];
+  var allLabels = new Set();
+
+  TARGET_DAYS.forEach(function(day, i) {
+    var entries = byDay[day] || [];
+    entries.forEach(function(e) { allLabels.add(e.zaznam); });
+  });
+
+  var labels = Array.from(allLabels).sort();
+
+  TARGET_DAYS.forEach(function(day, i) {
+    var entries = byDay[day] || [];
+    var entryMap = {};
+    entries.forEach(function(e) { entryMap[e.zaznam] = e; });
+
+    var temps = labels.map(function(l) {
+      return entryMap[l] ? entryMap[l].teplota : null;
+    });
+
+    datasets.push({
+      label: DAY_LABELS[i],
+      data: temps,
+      borderColor: dayColors[i],
+      backgroundColor: dayColors[i],
+      borderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: 0.3,
+      spanGaps: true
+    });
+
+    var rozptyly = entries.filter(function(e) { return e.rozptyl != null; });
+    if (rozptyly.length > 0) {
+      var upper = labels.map(function(l) {
+        var e = entryMap[l];
+        return e && e.rozptyl != null ? e.teplota + e.rozptyl : null;
+      });
+      var lower = labels.map(function(l) {
+        var e = entryMap[l];
+        return e && e.rozptyl != null ? e.teplota - e.rozptyl : null;
+      });
+      datasets.push({
+        label: DAY_LABELS[i] + ' rozptyl',
+        data: upper,
+        borderColor: 'transparent',
+        backgroundColor: 'transparent',
+        pointRadius: 0,
+        fill: false,
+        spanGaps: true
+      });
+      datasets.push({
+        label: DAY_LABELS[i] + ' rozptyl spodní',
+        data: lower,
+        borderColor: 'transparent',
+        backgroundColor: dayColors[i] + '18',
+        pointRadius: 0,
+        fill: '-1',
+        spanGaps: true
+      });
+    }
+  });
+
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: {
+            font: { family: 'DM Mono', size: 10 },
+            color: COLORS.muted,
+            filter: function(item) { return item.text.indexOf('rozptyl') === -1; }
+          }
+        },
+        tooltip: {
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Sans', size: 12 },
+          filter: function(item) { return item.dataset.label.indexOf('rozptyl') === -1; },
+          callbacks: {
+            label: function(ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '°C'; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted, maxRotation: 45 },
+          grid: { color: COLORS.border + '60' }
+        },
+        y: {
+          ticks: {
+            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            callback: function(v) { return v + '°C'; }
+          },
+          grid: { color: COLORS.border + '60' }
+        }
+      }
+    }
+  });
+}
+
+function renderRainChart(byDay) {
+  var ctx = document.getElementById('chart-rain').getContext('2d');
+  var latestData = TARGET_DAYS.map(function(day) {
+    var entries = byDay[day] || [];
+    return entries.length > 0 ? entries[entries.length - 1] : null;
+  });
+
+  var rainVals = latestData.map(function(d) { return d ? d.srazky || 0 : 0; });
+  var probVals = latestData.map(function(d) { return d && d.srazkyP != null ? d.srazkyP : null; });
+
+  var datasets = [{
+    label: 'Srážky (mm)',
+    data: rainVals,
+    backgroundColor: COLORS.blueLight,
+    borderColor: COLORS.blue,
+    borderWidth: 2,
+    borderRadius: 4,
+    yAxisID: 'y'
+  }];
+
+  if (probVals.some(function(v) { return v != null; })) {
+    datasets.push({
+      label: 'Pravděpodobnost (%)',
+      data: probVals,
+      type: 'line',
+      borderColor: COLORS.red,
+      backgroundColor: COLORS.red,
+      borderWidth: 2,
+      pointRadius: 4,
+      yAxisID: 'y1'
+    });
+  }
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels: DAY_LABELS, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted } }
+      },
+      scales: {
+        x: {
+          ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted },
+          grid: { display: false }
+        },
+        y: {
+          position: 'left',
+          beginAtZero: true,
+          ticks: {
+            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            callback: function(v) { return v + ' mm'; }
+          },
+          grid: { color: COLORS.border + '60' }
+        },
+        y1: {
+          position: 'right',
+          beginAtZero: true,
+          max: 100,
+          display: probVals.some(function(v) { return v != null; }),
+          ticks: {
+            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            callback: function(v) { return v + '%'; }
+          },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+function renderReliabilityChart(byDay) {
+  var ctx = document.getElementById('chart-reliability').getContext('2d');
+
+  var allLabels = new Set();
+  TARGET_DAYS.forEach(function(day) {
+    (byDay[day] || []).forEach(function(e) { allLabels.add(e.zaznam); });
+  });
+  var labels = Array.from(allLabels).sort();
+
+  var dayColors = [COLORS.green, COLORS.red, COLORS.blue, COLORS.muted];
+  var datasets = TARGET_DAYS.map(function(day, i) {
+    var entries = byDay[day] || [];
+    var entryMap = {};
+    entries.forEach(function(e) { entryMap[e.zaznam] = e; });
+
+    return {
+      label: DAY_LABELS[i],
+      data: labels.map(function(l) { return entryMap[l] ? entryMap[l].spoleh : null; }),
+      borderColor: dayColors[i],
+      backgroundColor: dayColors[i] + '18',
+      borderWidth: 2,
+      pointRadius: 4,
+      fill: true,
+      tension: 0.3,
+      spanGaps: true
+    };
+  });
+
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted } }
+      },
+      scales: {
+        x: {
+          ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted, maxRotation: 45 },
+          grid: { color: COLORS.border + '60' }
+        },
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            callback: function(v) { return v + '%'; }
+          },
+          grid: { color: COLORS.border + '60' }
+        }
+      }
+    }
+  });
+}
+
+function renderHistory(data) {
+  var tbody = document.getElementById('history-body');
+  var reversed = data.slice().reverse();
+
+  reversed.forEach(function(d) {
+    var tr = document.createElement('tr');
+    var spolehCls = reliabilityClass(d.spoleh || 0);
+    tr.innerHTML =
+      '<td class="mono muted">' + d.zaznam + '</td>' +
+      '<td class="mono">' + d.den + '</td>' +
+      '<td class="mono">' + (d.dny != null ? d.dny : '') + '</td>' +
+      '<td class="mono">' + (d.teplota != null ? d.teplota.toFixed(1) + '°C' : '') + '</td>' +
+      '<td>' + d.popis + '</td>' +
+      '<td class="mono">' + (d.srazky != null ? d.srazky.toFixed(1) : '') + '</td>' +
+      '<td class="mono">' + (d.srazkyP != null ? d.srazkyP + '%' : '') + '</td>' +
+      '<td class="mono ' + spolehCls + '">' + (d.spoleh != null ? d.spoleh + '%' : '') + '</td>' +
+      '<td class="mono">' + (d.rozptyl != null ? '±' + d.rozptyl.toFixed(1) : '') + '</td>' +
+      '<td class="mono muted">' + d.typ + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>
