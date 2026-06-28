@@ -32,6 +32,8 @@
   .header-sub::before { content: ''; display: block; width: 32px; height: 1px; background: #4a7a00; flex-shrink: 0; }
   .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
   .tag { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #4a7a00; text-transform: uppercase; }
+  .tag-link { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 12px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #fff; text-transform: uppercase; text-decoration: none; cursor: pointer; transition: background 0.2s, transform 0.2s; }
+  .tag-link:hover { background: #3d6600; transform: translateY(-1px); }
 
   .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; margin-bottom: 2px; }
   .stats-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-bottom: 2px; }
@@ -333,6 +335,7 @@
           <div class="tag">🇨🇿 🇩🇪 🇵🇱 3 země</div>
           <div class="tag">📏 74,86 km</div>
           <div class="tag">⬆ 944 m převýšení</div>
+          <a class="tag-link" href="pocasi.html">☁️ Počasí</a>
         </div>
       </div>
       <div class="header-photo-wrap">
