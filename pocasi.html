@@ -140,19 +140,18 @@
     <div class="stats-grid-4" id="summary-stats"></div>
 
     <!-- Přepínač dnů -->
-    <div class="day-filter" id="day-filter">
-      <button class="active" data-day="all">Vše</button>
-      <button data-day="13.08.2026">Čt 13.8.</button>
-      <button data-day="14.08.2026">Pá 14.8.</button>
-      <button data-day="15.08.2026">So 15.8.</button>
-      <button data-day="16.08.2026">Ne 16.8.</button>
-    </div>
-
     <!-- Graf konvergence teploty -->
     <div class="chart-section">
       <div class="section-header">
         <span class="section-title">Vývoj předpovědi teploty</span>
         <span class="section-hint">Jak se mění předpověď v čase</span>
+      </div>
+      <div class="day-filter" id="day-filter-chart">
+        <button class="active" data-day="all">Vše</button>
+        <button data-day="13.08.2026">Čt 13.8.</button>
+        <button data-day="14.08.2026">Pá 14.8.</button>
+        <button data-day="15.08.2026">So 15.8.</button>
+        <button data-day="16.08.2026">Ne 16.8.</button>
       </div>
       <div class="chart-wrap">
         <canvas id="chart-temp" height="280"></canvas>
@@ -192,6 +191,13 @@
     <div class="section-header">
       <span class="section-title">Historie měření</span>
       <span class="section-hint" id="hint-rows"></span>
+    </div>
+    <div class="day-filter" id="day-filter-table">
+      <button class="active" data-day="all">Vše</button>
+      <button data-day="13.08.2026">Čt 13.8.</button>
+      <button data-day="14.08.2026">Pá 14.8.</button>
+      <button data-day="15.08.2026">So 15.8.</button>
+      <button data-day="16.08.2026">Ne 16.8.</button>
     </div>
     <div style="overflow-x:auto;">
       <table class="history-table" id="history-table">
@@ -347,15 +353,23 @@ function processData(rows) {
   renderReliabilityChart(byDay);
   renderHistory(data, null);
 
-  // přepínač dnů
-  document.getElementById('day-filter').addEventListener('click', function(e) {
+  // přepínač grafu
+  document.getElementById('day-filter-chart').addEventListener('click', function(e) {
     var btn = e.target.closest('button');
     if (!btn) return;
-    document.querySelectorAll('#day-filter button').forEach(function(b) { b.classList.remove('active'); });
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     var day = btn.dataset.day === 'all' ? null : btn.dataset.day;
-    window._activeDay = day;
     renderTempChart(window._byDay, day);
+  });
+
+  // přepínač tabulky
+  document.getElementById('day-filter-table').addEventListener('click', function(e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var day = btn.dataset.day === 'all' ? null : btn.dataset.day;
     renderHistory(window._allData, day);
     var count = day ? window._allData.filter(function(d) { return d.den === day; }).length : window._allData.length;
     document.getElementById('hint-rows').textContent = count + ' záznamů';
