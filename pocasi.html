@@ -34,6 +34,10 @@
   .tag { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; }
 
   .section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .day-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+  .day-filter button { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .day-filter button:hover { border-color: var(--accent); color: var(--accent); }
+  .day-filter button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
   .section-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
   .section-hint { font-size: 11px; color: var(--muted); opacity: 0.6; }
 
@@ -134,6 +138,15 @@
 
     <!-- Souhrnné statistiky -->
     <div class="stats-grid-4" id="summary-stats"></div>
+
+    <!-- Přepínač dnů -->
+    <div class="day-filter" id="day-filter">
+      <button class="active" data-day="all">Vše</button>
+      <button data-day="13.08.2026">Čt 13.8.</button>
+      <button data-day="14.08.2026">Pá 14.8.</button>
+      <button data-day="15.08.2026">So 15.8.</button>
+      <button data-day="16.08.2026">Ne 16.8.</button>
+    </div>
 
     <!-- Graf konvergence teploty -->
     <div class="chart-section">
@@ -323,10 +336,30 @@ function processData(rows) {
 
   renderCards(latestRows);
   renderSummary(latestRows);
-  renderTempChart(byDay);
+
+  // uložíme globálně pro filtrování
+  window._byDay = byDay;
+  window._allData = data;
+  window._activeDay = null;
+
+  renderTempChart(byDay, null);
   renderRainChart(byDay);
   renderReliabilityChart(byDay);
-  renderHistory(data);
+  renderHistory(data, null);
+
+  // přepínač dnů
+  document.getElementById('day-filter').addEventListener('click', function(e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#day-filter button').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var day = btn.dataset.day === 'all' ? null : btn.dataset.day;
+    window._activeDay = day;
+    renderTempChart(window._byDay, day);
+    renderHistory(window._allData, day);
+    var count = day ? window._allData.filter(function(d) { return d.den === day; }).length : window._allData.length;
+    document.getElementById('hint-rows').textContent = count + ' záznamů';
+  });
 }
 
 function renderCards(rows) {
@@ -386,20 +419,24 @@ function renderSummary(rows) {
     '<div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-value">' + avgSpoleh.toFixed(0) + '<span class="unit">%</span></div><div class="stat-label">Spolehlivost</div></div>';
 }
 
-function renderTempChart(byDay) {
-  var ctx = document.getElementById('chart-temp').getContext('2d');
+function renderTempChart(byDay, dayFilter) {
+  var canvas = document.getElementById('chart-temp');
+  if (canvas._chartInstance) { canvas._chartInstance.destroy(); }
+  var ctx = canvas.getContext('2d');
   var datasets = [];
   var dayColors = [COLORS.green, COLORS.red, COLORS.blue, COLORS.muted];
   var allLabels = new Set();
+  var activeDays = dayFilter ? [dayFilter] : TARGET_DAYS;
 
-  TARGET_DAYS.forEach(function(day, i) {
+  activeDays.forEach(function(day) {
     var entries = byDay[day] || [];
     entries.forEach(function(e) { allLabels.add(e.zaznam); });
   });
 
   var labels = Array.from(allLabels).sort();
 
-  TARGET_DAYS.forEach(function(day, i) {
+  activeDays.forEach(function(day) {
+    var i = TARGET_DAYS.indexOf(day);
     var entries = byDay[day] || [];
     var entryMap = {};
     entries.forEach(function(e) { entryMap[e.zaznam] = e; });
@@ -451,7 +488,7 @@ function renderTempChart(byDay) {
     }
   });
 
-  new Chart(ctx, {
+  canvas._chartInstance = new Chart(ctx, {
     type: 'line',
     data: { labels: labels, datasets: datasets },
     options: {
@@ -620,9 +657,11 @@ function renderReliabilityChart(byDay) {
   });
 }
 
-function renderHistory(data) {
+function renderHistory(data, dayFilter) {
   var tbody = document.getElementById('history-body');
-  var reversed = data.slice().reverse();
+  tbody.innerHTML = '';
+  var filtered = dayFilter ? data.filter(function(d) { return d.den === dayFilter; }) : data;
+  var reversed = filtered.slice().reverse();
 
   reversed.forEach(function(d) {
     var tr = document.createElement('tr');
