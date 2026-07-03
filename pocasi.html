@@ -187,6 +187,33 @@
       Rozptyl teploty ukazuje shodu klimatických modelů &mdash; nižší = vyšší jistota.</p>
     </div>
 
+    <!-- Historická klimatologie -->
+    <div class="chart-section" id="climate-section">
+      <div class="section-header">
+        <span class="section-title">Historická klimatologie · 2014–2024</span>
+        <span class="section-hint">13.–16. 8. · Kokonín / Jablonec n. N.</span>
+      </div>
+      <div id="climate-loading" style="padding:24px 0;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">Načítám historická data…</div>
+      <div id="climate-content" style="display:none">
+        <div class="stats-grid-4" id="climate-cards"></div>
+        <div class="chart-wrap" style="margin-bottom:24px">
+          <canvas id="chart-climate" height="240"></canvas>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="history-table" id="climate-table">
+            <thead><tr>
+              <th>Rok</th>
+              <th>Čt 13.8. max</th><th>Čt 13.8. min</th><th>Čt 13.8. déšť</th>
+              <th>Pá 14.8. max</th><th>Pá 14.8. min</th><th>Pá 14.8. déšť</th>
+              <th>So 15.8. max</th><th>So 15.8. min</th><th>So 15.8. déšť</th>
+              <th>Ne 16.8. max</th><th>Ne 16.8. min</th><th>Ne 16.8. déšť</th>
+            </tr></thead>
+            <tbody id="climate-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Tabulka historie -->
     <div class="section-header">
       <span class="section-title">Historie měření</span>
@@ -696,6 +723,149 @@ function renderHistory(data, dayFilter) {
 }
 
 loadData();
+
+// ── HISTORICKÁ KLIMATOLOGIE ───────────────────────────────────────────────────
+var CLIMATE_LAT = 50.7052, CLIMATE_LON = 15.1863; // Kokonín
+var CLIMATE_YEARS = [];
+for (var _y = 2014; _y <= 2024; _y++) CLIMATE_YEARS.push(_y);
+var CLIMATE_DAY_LABELS = ['Čt 13.8.', 'Pá 14.8.', 'So 15.8.', 'Ne 16.8.'];
+var CLIMATE_DAYS = ['13', '14', '15', '16'];
+
+function loadClimateData() {
+  var promises = CLIMATE_YEARS.map(function(year) {
+    var url = 'https://archive-api.open-meteo.com/v1/archive' +
+      '?latitude=' + CLIMATE_LAT + '&longitude=' + CLIMATE_LON +
+      '&start_date=' + year + '-08-13&end_date=' + year + '-08-16' +
+      '&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum' +
+      '&timezone=Europe%2FPrague';
+    return fetch(url).then(function(r) { return r.json(); }).then(function(d) { return { year: year, d: d }; });
+  });
+
+  Promise.all(promises).then(function(results) {
+    var byDay = { '13': [], '14': [], '15': [], '16': [] };
+    results.forEach(function(res) {
+      var daily = res.d.daily;
+      if (!daily || !daily.time) return;
+      daily.time.forEach(function(date, i) {
+        var day = date.slice(-2);
+        if (!byDay[day]) return;
+        byDay[day].push({
+          year: res.year,
+          tmax: daily.temperature_2m_max[i],
+          tmin: daily.temperature_2m_min[i],
+          tmean: daily.temperature_2m_mean[i],
+          rain: daily.precipitation_sum[i]
+        });
+      });
+    });
+
+    document.getElementById('climate-loading').style.display = 'none';
+    document.getElementById('climate-content').style.display = 'block';
+    renderClimateCards(byDay);
+    renderClimateChart(byDay);
+    renderClimateTable(byDay);
+  }).catch(function() {
+    document.getElementById('climate-loading').textContent = 'Historická data se nepodařilo načíst.';
+  });
+}
+
+function climateAvg(arr, key) {
+  var vals = arr.map(function(r) { return r[key]; }).filter(function(v) { return v != null; });
+  return vals.length ? vals.reduce(function(a, b) { return a + b; }, 0) / vals.length : null;
+}
+function climateMin(arr, key) {
+  var vals = arr.map(function(r) { return r[key]; }).filter(function(v) { return v != null; });
+  return vals.length ? Math.min.apply(null, vals) : null;
+}
+function climateMax(arr, key) {
+  var vals = arr.map(function(r) { return r[key]; }).filter(function(v) { return v != null; });
+  return vals.length ? Math.max.apply(null, vals) : null;
+}
+
+function renderClimateCards(byDay) {
+  var container = document.getElementById('climate-cards');
+  var dayColors = [COLORS.green, COLORS.red, COLORS.blue, COLORS.muted];
+  container.innerHTML = CLIMATE_DAYS.map(function(d, i) {
+    var rows = byDay[d] || [];
+    var avgMax = climateAvg(rows, 'tmax'), avgMin = climateAvg(rows, 'tmin');
+    var histMax = climateMax(rows, 'tmax'), histMin = climateMin(rows, 'tmin');
+    var avgRain = climateAvg(rows, 'rain');
+    return '<div class="stat-card" style="border-top:3px solid ' + dayColors[i] + '">' +
+      '<div style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">' + CLIMATE_DAY_LABELS[i] + '</div>' +
+      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:var(--text);line-height:1">' + (avgMax != null ? avgMax.toFixed(1) : '—') + '<span style="font-size:14px;color:var(--muted)">°C</span></div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">průměrné max · min ' + (avgMin != null ? avgMin.toFixed(1) : '—') + '°C</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">rekord: ' + (histMax != null ? histMax.toFixed(1) : '—') + ' / ' + (histMin != null ? histMin.toFixed(1) : '—') + '°C</div>' +
+      '<div style="font-size:11px;color:var(--accent3);margin-top:4px">💧 ' + (avgRain != null ? avgRain.toFixed(1) : '—') + ' mm průměrně</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderClimateChart(byDay) {
+  var ctx = document.getElementById('chart-climate').getContext('2d');
+  var dayColors = [COLORS.green, COLORS.red, COLORS.blue, COLORS.muted];
+  var labels = CLIMATE_YEARS.map(String);
+  var datasets = CLIMATE_DAYS.map(function(d, i) {
+    var rows = byDay[d] || [];
+    var rowMap = {};
+    rows.forEach(function(r) { rowMap[r.year] = r; });
+    return {
+      label: CLIMATE_DAY_LABELS[i],
+      data: CLIMATE_YEARS.map(function(y) {
+        var r = rowMap[y];
+        return r && r.tmax != null ? parseFloat(r.tmax.toFixed(1)) : null;
+      }),
+      borderColor: dayColors[i],
+      backgroundColor: dayColors[i],
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      spanGaps: true
+    };
+  });
+
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted }
+        },
+        tooltip: {
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Sans', size: 12 },
+          callbacks: { label: function(c) { return c.dataset.label + ': ' + c.parsed.y + '°C max'; } }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted }, grid: { color: COLORS.border + '60' } },
+        y: { ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted, callback: function(v) { return v + '°C'; } }, grid: { color: COLORS.border + '60' } }
+      }
+    }
+  });
+}
+
+function renderClimateTable(byDay) {
+  var tbody = document.getElementById('climate-body');
+  CLIMATE_YEARS.slice().reverse().forEach(function(year) {
+    var tr = document.createElement('tr');
+    var cells = '<td class="mono" style="font-weight:500">' + year + '</td>';
+    CLIMATE_DAYS.forEach(function(d) {
+      var row = (byDay[d] || []).find(function(r) { return r.year === year; });
+      cells += '<td class="mono">' + (row && row.tmax != null ? row.tmax.toFixed(1) + '°C' : '—') + '</td>';
+      cells += '<td class="mono">' + (row && row.tmin != null ? row.tmin.toFixed(1) + '°C' : '—') + '</td>';
+      cells += '<td class="mono">' + (row && row.rain != null ? row.rain.toFixed(1) + ' mm' : '—') + '</td>';
+    });
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+}
+
+loadClimateData();
 </script>
 </body>
 </html>
