@@ -190,7 +190,7 @@
     <!-- Historická klimatologie -->
     <div class="chart-section" id="climate-section">
       <div class="section-header">
-        <span class="section-title">Historická klimatologie · 2014–2024</span>
+        <span class="section-title">Historická klimatologie · 2014–2025</span>
         <span class="section-hint">13.–16. 8. · Kokonín / Jablonec n. N.</span>
       </div>
       <div id="climate-loading" style="padding:24px 0;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">Načítám historická data…</div>
@@ -727,46 +727,48 @@ loadData();
 // ── HISTORICKÁ KLIMATOLOGIE ───────────────────────────────────────────────────
 var CLIMATE_LAT = 50.7052, CLIMATE_LON = 15.1863; // Kokonín
 var CLIMATE_YEARS = [];
-for (var _y = 2014; _y <= 2024; _y++) CLIMATE_YEARS.push(_y);
+for (var _y = 2014; _y <= 2025; _y++) CLIMATE_YEARS.push(_y);
 var CLIMATE_DAY_LABELS = ['Čt 13.8.', 'Pá 14.8.', 'So 15.8.', 'Ne 16.8.'];
 var CLIMATE_DAYS = ['13', '14', '15', '16'];
 
 function loadClimateData() {
-  var promises = CLIMATE_YEARS.map(function(year) {
-    var url = 'https://archive-api.open-meteo.com/v1/archive' +
-      '?latitude=' + CLIMATE_LAT + '&longitude=' + CLIMATE_LON +
-      '&start_date=' + year + '-08-13&end_date=' + year + '-08-16' +
-      '&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum' +
-      '&timezone=Europe%2FPrague';
-    return fetch(url).then(function(r) { return r.json(); }).then(function(d) { return { year: year, d: d }; });
-  });
+  // jeden request pro celý rozsah — žádný rate limiting
+  var url = 'https://archive-api.open-meteo.com/v1/archive' +
+    '?latitude=' + CLIMATE_LAT + '&longitude=' + CLIMATE_LON +
+    '&start_date=2014-08-13&end_date=2025-08-16' +
+    '&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum' +
+    '&timezone=Europe%2FPrague';
 
-  Promise.all(promises).then(function(results) {
-    var byDay = { '13': [], '14': [], '15': [], '16': [] };
-    results.forEach(function(res) {
-      var daily = res.d.daily;
-      if (!daily || !daily.time) return;
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var daily = data.daily;
+      if (!daily || !daily.time) throw new Error('no data');
+
+      var byDay = { '13': [], '14': [], '15': [], '16': [] };
       daily.time.forEach(function(date, i) {
-        var day = date.slice(-2);
+        var parts = date.split('-'); // ["2019","08","13"]
+        if (parts[1] !== '08') return; // jen srpen
+        var day = parts[2];
         if (!byDay[day]) return;
         byDay[day].push({
-          year: res.year,
+          year: parseInt(parts[0]),
           tmax: daily.temperature_2m_max[i],
           tmin: daily.temperature_2m_min[i],
           tmean: daily.temperature_2m_mean[i],
           rain: daily.precipitation_sum[i]
         });
       });
-    });
 
-    document.getElementById('climate-loading').style.display = 'none';
-    document.getElementById('climate-content').style.display = 'block';
-    renderClimateCards(byDay);
-    renderClimateChart(byDay);
-    renderClimateTable(byDay);
-  }).catch(function() {
-    document.getElementById('climate-loading').textContent = 'Historická data se nepodařilo načíst.';
-  });
+      document.getElementById('climate-loading').style.display = 'none';
+      document.getElementById('climate-content').style.display = 'block';
+      renderClimateCards(byDay);
+      renderClimateChart(byDay);
+      renderClimateTable(byDay);
+    })
+    .catch(function() {
+      document.getElementById('climate-loading').textContent = 'Historická data se nepodařilo načíst.';
+    });
 }
 
 function climateAvg(arr, key) {
