@@ -281,6 +281,29 @@
         </thead>
         <tbody id="history-body"></tbody>
       </table>
+    <!-- Hodinová předpověď -->
+    <div class="chart-section" id="hourly-section">
+      <div class="section-header">
+        <span class="section-title">Hodinová předpověď</span>
+        <span class="section-hint">teplota · srážky · vítr</span>
+      </div>
+      <div class="day-filter" id="day-filter-hourly">
+        <button class="active" data-day="2026-08-13">Čt 13.8.</button>
+        <button data-day="2026-08-14">Pá 14.8.</button>
+        <button data-day="2026-08-15">So 15.8.</button>
+        <button data-day="2026-08-16">Ne 16.8.</button>
+      </div>
+      <div id="hourly-loading" style="padding:40px 0;text-align:center"><div class="loading-spinner"></div><div class="loading-text">Načítám hodinová data…</div></div>
+      <div id="hourly-unavailable" style="display:none">
+        <div class="info-box" style="margin-bottom:0">
+          <p>Hodinová předpověď bude dostupná přibližně <strong>od 28. 7. 2026</strong> (16 dní před akcí).</p>
+        </div>
+      </div>
+      <div id="hourly-content" style="display:none">
+        <div class="chart-wrap"><canvas id="chart-hourly" height="280"></canvas></div>
+      </div>
+    </div>
+
     </div>
 
   </div>
@@ -905,6 +928,182 @@ function renderClimateTable(byDay) {
 }
 
 loadClimateData();
+
+// ── FORECAST EXTRAS: UV + VÍTR ────────────────────────────────────────────────
+var FORECAST_LAT = 50.7052, FORECAST_LON = 15.1863;
+
+function uvColor(uv) {
+  if (uv == null) return COLORS.muted;
+  if (uv <= 2) return '#4a7a00';
+  if (uv <= 5) return '#b8860b';
+  if (uv <= 7) return '#d46800';
+  return '#c94010';
+}
+
+function windDirCz(deg) {
+  if (deg == null) return '';
+  var d = ['S','SSV','SV','VSV','V','VJV','JV','JJV','J','JJZ','JZ','ZJZ','Z','ZSZ','SZ','SSZ'];
+  return d[Math.round(deg / 22.5) % 16];
+}
+
+function processExtras(daily) {
+  window._forecastExtras = {};
+  (daily.time || []).forEach(function(date, i) {
+    var p = date.split('-');
+    var key = p[2] + '.' + p[1] + '.' + p[0];
+    window._forecastExtras[key] = {
+      uv:      (daily.uv_index_max)              ? daily.uv_index_max[i]              : null,
+      windMax: (daily.wind_speed_10m_max)         ? daily.wind_speed_10m_max[i]         : null,
+      windDir: (daily.wind_direction_10m_dominant)? daily.wind_direction_10m_dominant[i]: null,
+      gusts:   (daily.wind_gusts_10m_max)         ? daily.wind_gusts_10m_max[i]         : null
+    };
+  });
+  patchCardsWithExtras();
+}
+
+function loadSeasonalWind() {
+  var url = 'https://seasonal-api.open-meteo.com/v1/seasonal' +
+    '?latitude=' + FORECAST_LAT + '&longitude=' + FORECAST_LON +
+    '&daily=wind_speed_10m_max,wind_direction_10m_dominant' +
+    '&start_date=2026-08-13&end_date=2026-08-16' +
+    '&timezone=Europe%2FPrague&models=ecmwf_ifs04';
+  fetch(url).then(function(r) { return r.json(); })
+    .then(function(data) { if (data.daily) processExtras(data.daily); })
+    .catch(function() {});
+}
+
+function loadForecastExtras() {
+  var url = 'https://api.open-meteo.com/v1/forecast' +
+    '?latitude=' + FORECAST_LAT + '&longitude=' + FORECAST_LON +
+    '&daily=uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant,wind_gusts_10m_max' +
+    '&start_date=2026-08-13&end_date=2026-08-16&timezone=Europe%2FPrague';
+  fetch(url).then(function(r) { return r.json(); })
+    .then(function(data) {
+      var hasWind = data.daily && data.daily.wind_speed_10m_max &&
+                    data.daily.wind_speed_10m_max.some(function(v) { return v != null; });
+      if (hasWind) { processExtras(data.daily); }
+      else { loadSeasonalWind(); }
+    })
+    .catch(function() { loadSeasonalWind(); });
+}
+
+function patchCardsWithExtras() {
+  if (!window._forecastExtras) return;
+  var cards = document.querySelectorAll('#forecast-cards .fc-card');
+  TARGET_DAYS.forEach(function(day, i) {
+    var ext = window._forecastExtras[day];
+    if (!ext || !cards[i]) return;
+    var meta = cards[i].querySelector('.fc-meta');
+    if (!meta) return;
+
+    var uvVal  = ext.uv != null ? ext.uv.toFixed(1) : '—';
+    var uvCol  = uvColor(ext.uv);
+    var wVal   = ext.windMax != null ? Math.round(ext.windMax) + ' km/h' : '—';
+    var wDir   = windDirCz(ext.windDir);
+    var gust   = ext.gusts != null ? ' (náraz ' + Math.round(ext.gusts) + ')' : '';
+
+    var row = document.createElement('div');
+    row.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border)';
+    row.innerHTML =
+      '<div class="fc-meta-row"><span class="fc-meta-label">UV max</span>' +
+        '<span class="fc-meta-value" style="color:' + uvCol + ';font-weight:600">' + uvVal + '</span></div>' +
+      '<div class="fc-meta-row"><span class="fc-meta-label">Vítr</span>' +
+        '<span class="fc-meta-value">' + wVal + (wDir ? ' ' + wDir : '') + gust + '</span></div>';
+    meta.appendChild(row);
+  });
+}
+
+loadForecastExtras();
+
+// ── HODINOVÁ PŘEDPOVĚĎ ────────────────────────────────────────────────────────
+var _hourlyData = null;
+var _hourlyDay  = '2026-08-13';
+
+function loadHourlyForecast() {
+  var url = 'https://api.open-meteo.com/v1/forecast' +
+    '?latitude=' + FORECAST_LAT + '&longitude=' + FORECAST_LON +
+    '&hourly=temperature_2m,precipitation,wind_speed_10m,uv_index' +
+    '&start_date=2026-08-13&end_date=2026-08-16&timezone=Europe%2FPrague';
+
+  fetch(url).then(function(r) { return r.json(); })
+    .then(function(data) {
+      document.getElementById('hourly-loading').style.display = 'none';
+      var hasData = data.hourly && data.hourly.time && data.hourly.time.length > 0 &&
+                    data.hourly.temperature_2m.some(function(v) { return v != null; });
+      if (!hasData) {
+        document.getElementById('hourly-unavailable').style.display = 'block';
+        return;
+      }
+      _hourlyData = data.hourly;
+      document.getElementById('hourly-content').style.display = 'block';
+      renderHourlyChart(_hourlyDay);
+
+      document.getElementById('day-filter-hourly').addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        renderHourlyChart(btn.dataset.day);
+      });
+    })
+    .catch(function() {
+      document.getElementById('hourly-loading').style.display = 'none';
+      document.getElementById('hourly-unavailable').style.display = 'block';
+    });
+}
+
+function renderHourlyChart(day) {
+  if (!_hourlyData) return;
+  _hourlyDay = day;
+  var times = [], temps = [], rains = [], winds = [], uvs = [];
+  _hourlyData.time.forEach(function(t, i) {
+    if (t.slice(0, 10) !== day) return;
+    times.push(t.slice(11, 16));
+    temps.push(_hourlyData.temperature_2m[i]);
+    rains.push(_hourlyData.precipitation[i]);
+    winds.push(_hourlyData.wind_speed_10m[i]);
+    uvs.push(_hourlyData.uv_index[i]);
+  });
+
+  var canvas = document.getElementById('chart-hourly');
+  if (canvas._chartInstance) canvas._chartInstance.destroy();
+  var ctx = canvas.getContext('2d');
+
+  canvas._chartInstance = new Chart(ctx, {
+    data: {
+      labels: times,
+      datasets: [
+        { type: 'line',  label: 'Teplota (°C)',  data: temps,  borderColor: COLORS.red,     backgroundColor: COLORS.red,       borderWidth: 2.5, pointRadius: 2, tension: 0.4, yAxisID: 'y',  spanGaps: true },
+        { type: 'bar',   label: 'Srážky (mm)',   data: rains,  backgroundColor: COLORS.blueLight, borderColor: COLORS.blue,    borderWidth: 1,   borderRadius: 2, yAxisID: 'y1' },
+        { type: 'line',  label: 'Vítr (km/h)',   data: winds,  borderColor: COLORS.muted,   backgroundColor: COLORS.muted,     borderWidth: 1.5, pointRadius: 0, tension: 0.4, borderDash: [4,3], yAxisID: 'y2', spanGaps: true }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted } },
+        tooltip: {
+          titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Sans', size: 12 },
+          callbacks: {
+            afterBody: function(items) {
+              var idx = items[0].dataIndex;
+              return uvs[idx] != null && uvs[idx] > 0 ? ['UV index: ' + uvs[idx].toFixed(1)] : [];
+            }
+          }
+        }
+      },
+      scales: {
+        x:  { ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted, maxTicksLimit: 12 }, grid: { color: COLORS.border + '40' } },
+        y:  { position: 'left',  ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.red,   callback: function(v) { return v + '°C'; }  }, grid: { color: COLORS.border + '60' } },
+        y1: { position: 'right', beginAtZero: true, ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.blue, callback: function(v) { return v + ' mm'; } }, grid: { display: false } },
+        y2: { display: false, beginAtZero: true }
+      }
+    }
+  });
+}
+
+loadHourlyForecast();
 </script>
 </body>
 </html>
