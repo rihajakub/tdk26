@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TDK 2026 — Předpověď počasí</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
@@ -26,33 +26,33 @@
     --shadow-md: 0 4px 20px rgba(0,0,0,0.10);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
 
   /* ── LAYOUT ── */
   .container { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; }
 
   /* ── HERO HEADER ── */
   header { background: var(--hero-bg); margin: 0 -24px 52px; padding: 32px 24px 36px; }
-  .back-link { display: inline-flex; align-items: center; gap: 7px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hero-muted); text-decoration: none; margin-bottom: 28px; transition: color 0.15s; }
+  .back-link { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hero-muted); text-decoration: none; margin-bottom: 28px; transition: color 0.15s; }
   .back-link:hover { color: var(--accent-bright); }
   .back-link::before { content: '←'; font-size: 12px; }
-  .header-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.25em; color: var(--hero-muted); text-transform: uppercase; margin-bottom: 10px; }
+  .header-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; color: var(--hero-muted); text-transform: uppercase; margin-bottom: 10px; }
   h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px, 13vw, 100px); line-height: 0.88; color: #fff; margin-bottom: 0; }
   h1 span.accent { color: var(--accent-bright); }
   .header-sub { font-size: 13px; color: var(--hero-muted); font-weight: 300; letter-spacing: 0.04em; margin-top: 18px; display: flex; align-items: center; gap: 12px; }
   .header-sub::before { content: ''; display: block; width: 28px; height: 1px; background: var(--accent-bright); flex-shrink: 0; }
   .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 18px; }
-  .tag { display: inline-flex; align-items: center; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 3px; padding: 4px 10px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: rgba(255,255,255,0.6); text-transform: uppercase; }
+  .tag { display: inline-flex; align-items: center; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 3px; padding: 4px 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: rgba(255,255,255,0.6); text-transform: uppercase; }
 
   /* ── SECTIONS ── */
   .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 13px; border-bottom: 2px solid var(--border); }
-  .section-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text); font-weight: 500; }
-  .section-hint { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .section-title { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text); font-weight: 500; }
+  .section-hint { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
   .chart-section { margin-bottom: 52px; }
 
   /* ── DAY FILTER ── */
   .day-filter { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
-  .day-filter button { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.12s; font-weight: 500; }
+  .day-filter button { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.12s; font-weight: 500; }
   .day-filter button:hover { border-color: var(--accent); color: var(--accent); background: rgba(61,104,0,0.04); }
   .day-filter button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
@@ -62,16 +62,16 @@
   .fc-card { background: var(--surface); padding: 22px 18px 18px; position: relative; overflow: hidden; transition: box-shadow 0.2s, transform 0.2s; box-shadow: var(--shadow); }
   .fc-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
   .fc-card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-  .fc-day { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .fc-day { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
   .fc-icon { font-size: 30px; margin-bottom: 8px; line-height: 1; }
   .fc-temp { font-family: 'Bebas Neue', sans-serif; font-size: 52px; line-height: 1; color: var(--text); margin-bottom: 3px; }
   .fc-temp .unit { font-size: 21px; color: var(--muted); margin-left: 2px; }
   .fc-desc { font-size: 12px; color: var(--muted); font-weight: 400; margin-bottom: 8px; }
-  .fc-rain { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent3); font-weight: 500; }
+  .fc-rain { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent3); font-weight: 500; }
   .fc-meta { margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--border); }
   .fc-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-  .fc-meta-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
-  .fc-meta-value { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text); font-weight: 500; }
+  .fc-meta-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .fc-meta-value { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text); font-weight: 500; }
   .fc-meta-value.low { color: var(--accent2); }
   .fc-meta-value.mid { color: #96700a; }
   .fc-meta-value.high { color: var(--accent); }
@@ -85,7 +85,7 @@
   .stat-icon { font-size: 18px; margin-bottom: 12px; }
   .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 1; color: var(--text); margin-bottom: 4px; }
   .stat-value .unit { font-size: 20px; color: var(--muted); margin-left: 2px; }
-  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; font-family: 'DM Mono', monospace; font-weight: 500; }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
   .stat-card.highlight .stat-value { color: var(--accent); }
   .stat-card.red .stat-value { color: var(--accent2); }
   .stat-card.blue .stat-value { color: var(--accent3); }
@@ -101,15 +101,15 @@
 
   /* ── TABLES ── */
   .history-table { width: 100%; background: var(--surface); border-collapse: collapse; margin-bottom: 0; box-shadow: var(--shadow); }
-  .history-table th { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 12px 14px; text-align: left; border-bottom: 2px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 1; font-weight: 500; }
+  .history-table th { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 12px 14px; text-align: left; border-bottom: 2px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 1; font-weight: 500; }
   .history-table td { font-size: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
   .history-table tbody tr:nth-child(even) td { background: rgba(0,0,0,0.018); }
   .history-table tbody tr:hover td { background: var(--surface2); }
-  .history-table .mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+  .history-table .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
   .history-table .muted { color: var(--muted); }
 
   /* ── CLIMATE TABLE GROUPED HEADERS ── */
-  .climate-group-header { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 8px 14px; text-align: center; border-bottom: 1px solid var(--border); font-weight: 500; }
+  .climate-group-header { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 8px 14px; text-align: center; border-bottom: 1px solid var(--border); font-weight: 500; }
   .climate-group-header.g0 { background: rgba(61,104,0,0.09); color: var(--accent); }
   .climate-group-header.g1 { background: rgba(184,50,0,0.08); color: var(--accent2); }
   .climate-group-header.g2 { background: rgba(14,109,150,0.08); color: var(--accent3); }
@@ -124,13 +124,13 @@
   .loading { text-align: center; padding: 80px 20px; }
   .loading-spinner { width: 30px; height: 30px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+  .loading-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
   .error-box { background: var(--surface); padding: 22px 26px; margin-bottom: 40px; border-left: 3px solid var(--accent2); box-shadow: var(--shadow); }
   .error-box p { font-size: 13px; color: var(--accent2); line-height: 1.6; }
 
   /* ── FOOTER ── */
   footer { border-top: 2px solid var(--border); padding-top: 24px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-  .footer-text { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  .footer-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
   .footer-dots { display: flex; gap: 6px; }
   .footer-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
   .footer-dots span:first-child { background: var(--accent-bright); animation: pulse 2.4s ease-in-out infinite; }
@@ -612,14 +612,14 @@ function renderTempChart(byDay, dayFilter) {
       plugins: {
         legend: {
           labels: {
-            font: { family: 'DM Mono', size: 10 },
+            font: { family: 'JetBrains Mono', size: 10 },
             color: COLORS.muted,
             filter: function(item) { return item.text.indexOf('rozptyl') === -1; }
           }
         },
         tooltip: {
-          titleFont: { family: 'DM Mono', size: 10 },
-          bodyFont: { family: 'DM Sans', size: 12 },
+          titleFont: { family: 'JetBrains Mono', size: 10 },
+          bodyFont: { family: 'Inter', size: 12 },
           filter: function(item) { return item.dataset.label.indexOf('rozptyl') === -1; },
           callbacks: {
             label: function(ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '°C'; }
@@ -628,12 +628,12 @@ function renderTempChart(byDay, dayFilter) {
       },
       scales: {
         x: {
-          ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted, maxRotation: 45 },
+          ticks: { font: { family: 'JetBrains Mono', size: 9 }, color: COLORS.muted, maxRotation: 45 },
           grid: { color: COLORS.border + '60' }
         },
         y: {
           ticks: {
-            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted,
             callback: function(v) { return v + '°C'; }
           },
           grid: { color: COLORS.border + '60' }
@@ -683,18 +683,18 @@ function renderRainChart(byDay) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted } }
+        legend: { labels: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted } }
       },
       scales: {
         x: {
-          ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted },
+          ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted },
           grid: { display: false }
         },
         y: {
           position: 'left',
           beginAtZero: true,
           ticks: {
-            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted,
             callback: function(v) { return v + ' mm'; }
           },
           grid: { color: COLORS.border + '60' }
@@ -705,7 +705,7 @@ function renderRainChart(byDay) {
           max: 100,
           display: probVals.some(function(v) { return v != null; }),
           ticks: {
-            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted,
             callback: function(v) { return v + '%'; }
           },
           grid: { display: false }
@@ -750,18 +750,18 @@ function renderReliabilityChart(byDay) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted } }
+        legend: { labels: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted } }
       },
       scales: {
         x: {
-          ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted, maxRotation: 45 },
+          ticks: { font: { family: 'JetBrains Mono', size: 9 }, color: COLORS.muted, maxRotation: 45 },
           grid: { color: COLORS.border + '60' }
         },
         y: {
           beginAtZero: true,
           max: 100,
           ticks: {
-            font: { family: 'DM Mono', size: 10 }, color: COLORS.muted,
+            font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted,
             callback: function(v) { return v + '%'; }
           },
           grid: { color: COLORS.border + '60' }
@@ -908,17 +908,17 @@ function renderClimateChart(byDay) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted }
+          labels: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted }
         },
         tooltip: {
-          titleFont: { family: 'DM Mono', size: 10 },
-          bodyFont: { family: 'DM Sans', size: 12 },
+          titleFont: { family: 'JetBrains Mono', size: 10 },
+          bodyFont: { family: 'Inter', size: 12 },
           callbacks: { label: function(c) { return c.dataset.label + ': ' + c.parsed.y + '°C max'; } }
         }
       },
       scales: {
-        x: { ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted }, grid: { color: COLORS.border + '60' } },
-        y: { ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted, callback: function(v) { return v + '°C'; } }, grid: { color: COLORS.border + '60' } }
+        x: { ticks: { font: { family: 'JetBrains Mono', size: 9 }, color: COLORS.muted }, grid: { color: COLORS.border + '60' } },
+        y: { ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted, callback: function(v) { return v + '°C'; } }, grid: { color: COLORS.border + '60' } }
       }
     }
   });
@@ -1095,9 +1095,9 @@ function renderHourlyChart(day) {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { font: { family: 'DM Mono', size: 10 }, color: COLORS.muted } },
+        legend: { labels: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.muted } },
         tooltip: {
-          titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Sans', size: 12 },
+          titleFont: { family: 'JetBrains Mono', size: 10 }, bodyFont: { family: 'Inter', size: 12 },
           callbacks: {
             afterBody: function(items) {
               var idx = items[0].dataIndex;
@@ -1107,9 +1107,9 @@ function renderHourlyChart(day) {
         }
       },
       scales: {
-        x:  { ticks: { font: { family: 'DM Mono', size: 9 }, color: COLORS.muted, maxTicksLimit: 12 }, grid: { color: COLORS.border + '40' } },
-        y:  { position: 'left',  ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.red,   callback: function(v) { return v + '°C'; }  }, grid: { color: COLORS.border + '60' } },
-        y1: { position: 'right', beginAtZero: true, ticks: { font: { family: 'DM Mono', size: 10 }, color: COLORS.blue, callback: function(v) { return v + ' mm'; } }, grid: { display: false } },
+        x:  { ticks: { font: { family: 'JetBrains Mono', size: 9 }, color: COLORS.muted, maxTicksLimit: 12 }, grid: { color: COLORS.border + '40' } },
+        y:  { position: 'left',  ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.red,   callback: function(v) { return v + '°C'; }  }, grid: { color: COLORS.border + '60' } },
+        y1: { position: 'right', beginAtZero: true, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: COLORS.blue, callback: function(v) { return v + ' mm'; } }, grid: { display: false } },
         y2: { display: false, beginAtZero: true }
       }
     }
