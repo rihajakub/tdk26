@@ -101,10 +101,39 @@
   .footer-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
   .footer-dots span:first-child { background: var(--accent); }
 
-  .loading { text-align: center; padding: 60px 20px; }
+  .loading { text-align: center; padding: 80px 20px; }
+  .loading-spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
   .error-box { background: var(--surface); padding: 22px 26px; margin-bottom: 40px; border-left: 3px solid var(--accent2); }
   .error-box p { font-size: 13px; color: var(--accent2); line-height: 1.6; }
+
+  /* live dot */
+  .tag-live { position: relative; padding-left: 18px !important; }
+  .tag-live::before { content: ''; position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: translateY(-50%) scale(1); } 50% { opacity: 0.4; transform: translateY(-50%) scale(1.4); } }
+
+  /* section rhythm */
+  .chart-section { margin-bottom: 48px; }
+  .chart-wrap { background: var(--surface); padding: 24px 20px 20px; position: relative; }
+  .day-filter { margin-top: -4px; margin-bottom: 16px; }
+
+  /* climate table grouped headers */
+  .climate-group-header { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; text-align: center; border-bottom: 1px solid var(--border); }
+  .climate-group-header.g0 { background: rgba(74,122,0,0.08); color: #4a7a00; }
+  .climate-group-header.g1 { background: rgba(201,64,16,0.08); color: #c94010; }
+  .climate-group-header.g2 { background: rgba(26,127,168,0.08); color: #1a7fa8; }
+  .climate-group-header.g3 { background: rgba(122,135,153,0.08); color: #7a8799; }
+
+  /* responsive tweaks */
+  @media (max-width: 600px) {
+    .container { padding: 24px 16px 40px; }
+    h1 { font-size: clamp(48px, 14vw, 72px); }
+    .section-header { flex-direction: column; gap: 4px; }
+    .chart-wrap { padding: 16px 10px 12px; }
+    .stat-card { padding: 18px 16px; }
+    .stat-value { font-size: 36px; }
+  }
 </style>
 </head>
 <body>
@@ -119,11 +148,12 @@
     <div class="tags">
       <span class="tag">Open-Meteo API</span>
       <span class="tag" id="tag-source">Seasonal forecast</span>
-      <span class="tag" id="tag-updated">Aktualizace: &mdash;</span>
+      <span class="tag tag-live" id="tag-updated">Aktualizace: &mdash;</span>
     </div>
   </header>
 
   <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
     <div class="loading-text">Načítám data&hellip;</div>
   </div>
 
@@ -139,7 +169,6 @@
     <!-- Souhrnné statistiky -->
     <div class="stats-grid-4" id="summary-stats"></div>
 
-    <!-- Přepínač dnů -->
     <!-- Graf konvergence teploty -->
     <div class="chart-section">
       <div class="section-header">
@@ -193,21 +222,29 @@
         <span class="section-title">Historická klimatologie · 2014–2025</span>
         <span class="section-hint">13.–16. 8. · Kokonín / Jablonec n. N.</span>
       </div>
-      <div id="climate-loading" style="padding:24px 0;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">Načítám historická data…</div>
+      <div id="climate-loading" style="padding:40px 0;text-align:center"><div class="loading-spinner"></div><div class="loading-text">Načítám historická data…</div></div>
       <div id="climate-content" style="display:none">
         <div class="stats-grid-4" id="climate-cards"></div>
         <div class="chart-wrap" style="margin-bottom:24px">
           <canvas id="chart-climate" height="240"></canvas>
         </div>
-        <div style="overflow-x:auto">
+        <div style="overflow-x:auto;margin-top:8px">
           <table class="history-table" id="climate-table">
-            <thead><tr>
-              <th>Rok</th>
-              <th>Čt 13.8. max</th><th>Čt 13.8. min</th><th>Čt 13.8. déšť</th>
-              <th>Pá 14.8. max</th><th>Pá 14.8. min</th><th>Pá 14.8. déšť</th>
-              <th>So 15.8. max</th><th>So 15.8. min</th><th>So 15.8. déšť</th>
-              <th>Ne 16.8. max</th><th>Ne 16.8. min</th><th>Ne 16.8. déšť</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th rowspan="2" style="vertical-align:bottom">Rok</th>
+                <th colspan="3" class="climate-group-header g0">Čt 13.8.</th>
+                <th colspan="3" class="climate-group-header g1">Pá 14.8.</th>
+                <th colspan="3" class="climate-group-header g2">So 15.8.</th>
+                <th colspan="3" class="climate-group-header g3">Ne 16.8.</th>
+              </tr>
+              <tr>
+                <th>Max</th><th>Min</th><th>Déšť</th>
+                <th>Max</th><th>Min</th><th>Déšť</th>
+                <th>Max</th><th>Min</th><th>Déšť</th>
+                <th>Max</th><th>Min</th><th>Déšť</th>
+              </tr>
+            </thead>
             <tbody id="climate-body"></tbody>
           </table>
         </div>
