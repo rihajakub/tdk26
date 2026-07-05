@@ -170,17 +170,38 @@
 
   <div id="content" style="display:none;">
 
-    <!-- Aktuální předpověď -->
+    <!-- 1. Aktuální předpověď -->
     <div class="section-header">
       <span class="section-title">Aktuální předpověď</span>
       <span class="section-hint" id="hint-days"></span>
     </div>
     <div class="forecast-grid" id="forecast-cards"></div>
-
-    <!-- Souhrnné statistiky -->
     <div class="stats-grid-4" id="summary-stats"></div>
 
-    <!-- Graf konvergence teploty -->
+    <!-- 2. Hodinová předpověď -->
+    <div class="chart-section" id="hourly-section">
+      <div class="section-header">
+        <span class="section-title">Hodinová předpověď</span>
+        <span class="section-hint">teplota · srážky · vítr</span>
+      </div>
+      <div class="day-filter" id="day-filter-hourly">
+        <button class="active" data-day="2026-08-13">Čt 13.8.</button>
+        <button data-day="2026-08-14">Pá 14.8.</button>
+        <button data-day="2026-08-15">So 15.8.</button>
+        <button data-day="2026-08-16">Ne 16.8.</button>
+      </div>
+      <div id="hourly-loading" style="padding:40px 0;text-align:center"><div class="loading-spinner"></div><div class="loading-text">Načítám hodinová data…</div></div>
+      <div id="hourly-unavailable" style="display:none">
+        <div class="info-box" style="margin-bottom:0">
+          <p>Hodinová předpověď bude dostupná <strong>cca 10 dní před samotným dnem</strong> — data z Open-Meteo Forecast API.</p>
+        </div>
+      </div>
+      <div id="hourly-content" style="display:none">
+        <div class="chart-wrap"><canvas id="chart-hourly" height="280"></canvas></div>
+      </div>
+    </div>
+
+    <!-- 3. Vývoj předpovědi teploty -->
     <div class="chart-section">
       <div class="section-header">
         <span class="section-title">Vývoj předpovědi teploty</span>
@@ -198,7 +219,7 @@
       </div>
     </div>
 
-    <!-- Graf srážek -->
+    <!-- 4. Srážky -->
     <div class="chart-section">
       <div class="section-header">
         <span class="section-title">Srážky</span>
@@ -209,10 +230,10 @@
       </div>
     </div>
 
-    <!-- Graf spolehlivosti -->
+    <!-- 5. Pravděpodobnost -->
     <div class="chart-section">
       <div class="section-header">
-        <span class="section-title">Spolehlivost předpovědi</span>
+        <span class="section-title">Pravděpodobnost srážek</span>
         <span class="section-hint">Roste s blížícím se datem</span>
       </div>
       <div class="chart-wrap">
@@ -224,10 +245,44 @@
     <div class="info-box" id="info-box">
       <p>Data se aktualizují <strong>každý den</strong> pomocí Google Apps Script.
       Zdroj: <strong>open-meteo.com</strong> (Seasonal Forecast API pro vzdálené předpovědi, Forecast API od 16 dnů předem).
-      Rozptyl teploty ukazuje shodu klimatických modelů &mdash; nižší = vyšší jistota.</p>
+      Rozptyl teploty ukazuje shodu klimatických modelů — nižší = vyšší jistota.</p>
     </div>
 
-    <!-- Historická klimatologie -->
+    <!-- 6. Historie zápisů 2026 -->
+    <div class="chart-section">
+      <div class="section-header">
+        <span class="section-title">Historie zápisů · 2026</span>
+        <span class="section-hint" id="hint-rows"></span>
+      </div>
+      <div class="day-filter" id="day-filter-table">
+        <button class="active" data-day="all">Vše</button>
+        <button data-day="13.08.2026">Čt 13.8.</button>
+        <button data-day="14.08.2026">Pá 14.8.</button>
+        <button data-day="15.08.2026">So 15.8.</button>
+        <button data-day="16.08.2026">Ne 16.8.</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="history-table" id="history-table">
+          <thead>
+            <tr>
+              <th>Záznam</th>
+              <th>Den</th>
+              <th>Dní</th>
+              <th>Teplota</th>
+              <th>Počasí</th>
+              <th>Srážky</th>
+              <th>P(srážky)</th>
+              <th>Spolehl.</th>
+              <th>Rozptyl</th>
+              <th>Typ</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 7. Historická klimatologie -->
     <div class="chart-section" id="climate-section">
       <div class="section-header">
         <span class="section-title">Historická klimatologie · 2014–2025</span>
@@ -260,61 +315,6 @@
           </table>
         </div>
       </div>
-    </div>
-
-    <!-- Tabulka historie -->
-    <div class="section-header">
-      <span class="section-title">Historie měření</span>
-      <span class="section-hint" id="hint-rows"></span>
-    </div>
-    <div class="day-filter" id="day-filter-table">
-      <button class="active" data-day="all">Vše</button>
-      <button data-day="13.08.2026">Čt 13.8.</button>
-      <button data-day="14.08.2026">Pá 14.8.</button>
-      <button data-day="15.08.2026">So 15.8.</button>
-      <button data-day="16.08.2026">Ne 16.8.</button>
-    </div>
-    <div style="overflow-x:auto;">
-      <table class="history-table" id="history-table">
-        <thead>
-          <tr>
-            <th>Záznam</th>
-            <th>Den</th>
-            <th>Dní</th>
-            <th>Teplota</th>
-            <th>Počasí</th>
-            <th>Srážky</th>
-            <th>P(srážky)</th>
-            <th>Spolehl.</th>
-            <th>Rozptyl</th>
-            <th>Typ</th>
-          </tr>
-        </thead>
-        <tbody id="history-body"></tbody>
-      </table>
-    <!-- Hodinová předpověď -->
-    <div class="chart-section" id="hourly-section">
-      <div class="section-header">
-        <span class="section-title">Hodinová předpověď</span>
-        <span class="section-hint">teplota · srážky · vítr</span>
-      </div>
-      <div class="day-filter" id="day-filter-hourly">
-        <button class="active" data-day="2026-08-13">Čt 13.8.</button>
-        <button data-day="2026-08-14">Pá 14.8.</button>
-        <button data-day="2026-08-15">So 15.8.</button>
-        <button data-day="2026-08-16">Ne 16.8.</button>
-      </div>
-      <div id="hourly-loading" style="padding:40px 0;text-align:center"><div class="loading-spinner"></div><div class="loading-text">Načítám hodinová data…</div></div>
-      <div id="hourly-unavailable" style="display:none">
-        <div class="info-box" style="margin-bottom:0">
-          <p>Hodinová předpověď bude dostupná přibližně <strong>od 28. 7. 2026</strong> (16 dní před akcí).</p>
-        </div>
-      </div>
-      <div id="hourly-content" style="display:none">
-        <div class="chart-wrap"><canvas id="chart-hourly" height="280"></canvas></div>
-      </div>
-    </div>
-
     </div>
 
   </div>
