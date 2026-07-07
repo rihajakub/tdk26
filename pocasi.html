@@ -55,6 +55,9 @@
   .day-filter button { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.12s; font-weight: 500; }
   .day-filter button:hover { border-color: var(--accent); color: var(--accent); background: rgba(61,104,0,0.04); }
   .day-filter button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .expand-btn { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 18px; border: 1.5px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--accent); cursor: pointer; transition: all 0.12s; font-weight: 500; }
+  .expand-btn:hover { border-color: var(--accent); background: rgba(61,104,0,0.06); }
+  .expand-hint { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-left: 10px; letter-spacing: 0.08em; }
 
   /* ── FORECAST CARDS ── */
   .forecast-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-bottom: 3px; }
@@ -771,13 +774,23 @@ function renderReliabilityChart(byDay) {
   });
 }
 
+var _historyPage = 1;
+var PAGE_SIZE = 20;
+
 function renderHistory(data, dayFilter) {
+  _historyPage = 1;
+  var filtered = dayFilter ? data.filter(function(d) { return d.den === dayFilter; }) : data;
+  window._historyFiltered = filtered.slice().reverse();
+  _renderHistoryPage();
+}
+
+function _renderHistoryPage() {
+  var reversed = window._historyFiltered || [];
   var tbody = document.getElementById('history-body');
   tbody.innerHTML = '';
-  var filtered = dayFilter ? data.filter(function(d) { return d.den === dayFilter; }) : data;
-  var reversed = filtered.slice().reverse();
 
-  reversed.forEach(function(d) {
+  var visible = reversed.slice(0, _historyPage * PAGE_SIZE);
+  visible.forEach(function(d) {
     var tr = document.createElement('tr');
     var spolehCls = reliabilityClass(d.spoleh || 0);
     tr.innerHTML =
@@ -793,6 +806,24 @@ function renderHistory(data, dayFilter) {
       '<td class="mono muted">' + d.typ + '</td>';
     tbody.appendChild(tr);
   });
+
+  var existing = document.getElementById('history-load-more');
+  if (existing) existing.remove();
+
+  var remaining = reversed.length - visible.length;
+  if (remaining > 0) {
+    var wrap = document.createElement('tr');
+    wrap.id = 'history-load-more';
+    wrap.innerHTML = '<td colspan="10" style="text-align:center;padding:12px 0;">' +
+      '<button class="expand-btn" id="btn-load-more">Rozbalit dalších ' + Math.min(remaining, PAGE_SIZE) + '</button>' +
+      '<span class="expand-hint">· zbývá ' + remaining + ' záznamů</span>' +
+      '</td>';
+    tbody.appendChild(wrap);
+    document.getElementById('btn-load-more').addEventListener('click', function() {
+      _historyPage++;
+      _renderHistoryPage();
+    });
+  }
 }
 
 loadData();
