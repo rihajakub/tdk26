@@ -445,6 +445,66 @@ var COLORS = {
   blueLight: 'rgba(14,109,150,0.10)',
 };
 
+// ── CACHE ODPOVĚDÍ Z OPEN-METEO ──────────────────────────────────────────────
+// Open-Meteo má hodinový limit a účtuje podle objemu dat, ne podle počtu
+// dotazů. Klimatologie 2014–2025 je 4 020 dní historie, která se už nikdy
+// nezmění, a ensemble se přepočítává čtyřikrát denně — obojí se dřív stahovalo
+// při každém načtení stránky, což limit vyčerpalo (HTTP 429) a shodilo sekci
+// s historií. Držíme odpovědi v localStorage a při chybě sáhneme i po prošlé
+// kopii, protože stará data jsou lepší než hláška o chybě.
+
+function omFetch(ttlMinutes, url) {
+  var key = 'om:' + url;
+  var now = Date.now();
+  var stale = null;
+
+  try {
+    var raw = localStorage.getItem(key);
+    if (raw) {
+      var c = JSON.parse(raw);
+      if (c && c.t) {
+        if (now - c.t < ttlMinutes * 60000) return Promise.resolve(c.d);
+        stale = c.d;
+      }
+    }
+  } catch (e) { /* plné nebo zakázané úložiště – jedeme bez cache */ }
+
+  return fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      // Open-Meteo vrací chyby i s HTTP 200 v těle jako {error:true,reason:…},
+      // takže samotný fetch neselže a chyba by prošla dál jako platná data.
+      if (data && data.error) throw new Error(data.reason || 'Open-Meteo error');
+      try {
+        localStorage.setItem(key, JSON.stringify({ t: now, d: data }));
+      } catch (e) {
+        _omPruneCache();
+        try { localStorage.setItem(key, JSON.stringify({ t: now, d: data })); } catch (e2) {}
+      }
+      return data;
+    })
+    .catch(function(err) {
+      if (stale) return stale;
+      throw err;
+    });
+}
+
+// Když dojde místo, zahodíme jen naše klíče, ne cizí data v localStorage.
+function _omPruneCache() {
+  try {
+    var del = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('om:') === 0) del.push(k);
+    }
+    del.forEach(function(k) { localStorage.removeItem(k); });
+  } catch (e) {}
+}
+
+function isRateLimit(err) {
+  return !!err && /limit/i.test(err.message || '');
+}
+
 // Sekce s grafy jsou do načtení CSV skryté (display:none) — Chart.js by v nich
 // vykreslil nulovou plochu. Cokoli, co potřebuje viditelný #content, jde sem.
 var _contentReady = false;
@@ -1049,16 +1109,18 @@ var CLIMATE_DAY_LABELS = ['Čt 13.8.', 'Pá 14.8.', 'So 15.8.', 'Ne 16.8.'];
 var CLIMATE_DAYS = ['13', '14', '15', '16'];
 
 function loadClimateData() {
-  // jeden request pro celý rozsah — žádný rate limiting
+  // Jeden request pro celý rozsah 2014–2025. Vrátí 4 020 dní, i když jich
+  // potřebujeme 48 — Archive API neumí vybrat stejné čtyři dny v každém roce
+  // a dvanáct samostatných dotazů naráželo na limit ještě dřív. Řeší to cache:
+  // je to neměnná historie, takže se stáhne jednou za měsíc.
   var url = 'https://archive-api.open-meteo.com/v1/archive' +
     '?latitude=' + CLIMATE_LAT + '&longitude=' + CLIMATE_LON +
     '&start_date=2014-08-13&end_date=2025-08-16' +
-    '&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,' +
+    '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,' +
     'apparent_temperature_max,apparent_temperature_min,wind_gusts_10m_max' +
     '&timezone=Europe%2FPrague';
 
-  fetch(url)
-    .then(function(r) { return r.json(); })
+  omFetch(43200, url)
     .then(function(data) {
       var daily = data.daily;
       if (!daily || !daily.time) throw new Error('no data');
@@ -1073,7 +1135,6 @@ function loadClimateData() {
           year: parseInt(parts[0]),
           tmax: daily.temperature_2m_max[i],
           tmin: daily.temperature_2m_min[i],
-          tmean: daily.temperature_2m_mean[i],
           rain: daily.precipitation_sum[i],
           rf:   daily.apparent_temperature_max ? daily.apparent_temperature_max[i] : null,
           rfmin: daily.apparent_temperature_min ? daily.apparent_temperature_min[i] : null,
@@ -1097,8 +1158,10 @@ function loadClimateData() {
       renderClimateChart(byDay);
       renderClimateTable(byDay);
     })
-    .catch(function() {
-      document.getElementById('climate-loading').textContent = 'Historická data se nepodařilo načíst.';
+    .catch(function(err) {
+      document.getElementById('climate-loading').textContent = isRateLimit(err)
+        ? 'Překročen hodinový limit Open-Meteo. Zkuste to za hodinu — data se pak uloží do prohlížeče a dál se už nestahují.'
+        : 'Historická data se nepodařilo načíst.';
     });
 }
 
@@ -1251,7 +1314,7 @@ function loadSeasonalWind() {
     '&daily=wind_speed_10m_max,wind_direction_10m_dominant' +
     '&start_date=2026-08-13&end_date=2026-08-16' +
     '&timezone=Europe%2FPrague&models=ecmwf_ifs04';
-  fetch(url).then(function(r) { return r.json(); })
+  omFetch(60, url)
     .then(function(data) { if (data.daily) processExtras(data.daily); })
     .catch(function() {});
 }
@@ -1264,7 +1327,7 @@ function loadForecastExtras() {
     // Pevné start_date/end_date API odmítne, dokud cílové dny nejsou v dosahu
     // (povoluje jen dnes+15). Bereme celé okno a dny si vyfiltrujeme sami.
     '&forecast_days=16&timezone=Europe%2FPrague';
-  fetch(url).then(function(r) { return r.json(); })
+  omFetch(60, url)
     .then(function(data) {
       var hasWind = data.daily && data.daily.wind_speed_10m_max &&
                     data.daily.wind_speed_10m_max.some(function(v) { return v != null; });
@@ -1313,7 +1376,7 @@ function loadHourlyForecast() {
     'wind_speed_10m,uv_index' +
     '&forecast_days=16&timezone=Europe%2FPrague';
 
-  fetch(url).then(function(r) { return r.json(); })
+  omFetch(60, url)
     .then(function(data) {
       document.getElementById('hourly-loading').style.display = 'none';
       var hasData = data.hourly && data.hourly.time && data.hourly.time.length > 0 &&
@@ -1508,7 +1571,7 @@ function loadEnsembleDaily() {
     '&start_date=' + ISO_DAYS[0] + '&end_date=' + ISO_DAYS[3] +
     '&timezone=Europe%2FPrague';
 
-  return fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+  return omFetch(180, url).then(function(data) {
     var daily = data.daily;
     if (!daily || !daily.time) throw new Error('no ensemble data');
 
@@ -1567,7 +1630,7 @@ function loadEnsembleHourly() {
     '&start_date=' + ISO_DAYS[0] + '&end_date=' + ISO_DAYS[3] +
     '&timezone=Europe%2FPrague';
 
-  return fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+  return omFetch(180, url).then(function(data) {
     var h = data.hourly;
     if (!h || !h.time) throw new Error('no hourly ensemble');
 
