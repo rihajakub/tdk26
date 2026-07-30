@@ -309,7 +309,7 @@
     <div class="chart-section">
       <div class="section-header">
         <span class="section-title">Srážky</span>
-        <span class="section-hint">mm za den</span>
+        <span class="section-hint" id="rain-hint">mm za den</span>
       </div>
       <div class="chart-wrap">
         <canvas id="chart-rain" height="220"></canvas>
@@ -605,6 +605,7 @@ function processData(rows) {
       ensP10:     parseNum(r['ens_teplota_p10_C']),
       ensP90:     parseNum(r['ens_teplota_p90_C']),
       ensRfMax:   parseNum(r['ens_realfeel_max_C']),
+      ensSrazky:  parseNum(r['ens_srazky_med_mm']),
       ensPRain:   parseNum(r['ens_p_dest_05_%']),
       ensPStorm:  parseNum(r['ens_p_bourka_%']),
       ensJistota: parseNum(r['ens_jistota_%'])
@@ -851,15 +852,50 @@ function renderTempChart(byDay, dayFilter) {
   });
 }
 
+// Volá se dvakrát: hned po načtení CSV a znovu, až dorazí ensemble.
+// Živý ensemble má přednost před sheetem, aby graf ukazoval stejná čísla
+// jako karty nahoře — sheet drží poslední noční běh, karty aktuální stav.
 function renderRainChart(byDay) {
-  var ctx = document.getElementById('chart-rain').getContext('2d');
-  var latestData = TARGET_DAYS.map(function(day) {
-    var entries = byDay[day] || [];
-    return entries.length > 0 ? entries[entries.length - 1] : null;
-  });
+  var canvas = document.getElementById('chart-rain');
+  var existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  var ctx = canvas.getContext('2d');
 
-  var rainVals = latestData.map(function(d) { return d ? d.srazky || 0 : 0; });
-  var probVals = latestData.map(function(d) { return d && d.srazkyP != null ? d.srazkyP : null; });
+  var ens = window._ens;
+  var rainVals, probVals, srcNote;
+
+  if (ens && ISO_DAYS.some(function(iso) { return ens[iso]; })) {
+    rainVals = ISO_DAYS.map(function(iso) {
+      var e = ens[iso];
+      return e && e.stats.precip ? +e.stats.precip.med.toFixed(1) : 0;
+    });
+    probVals = ISO_DAYS.map(function(iso) {
+      var e = ens[iso];
+      if (!e) return null;
+      var wet = e.members.filter(function(m) { return m.precip != null && m.precip > 0.5; }).length;
+      return Math.round(100 * wet / e.n);
+    });
+    srcNote = 'medián ensemblu · P(> 0,5 mm)';
+  } else {
+    // Fallback na sheet. Nové sloupce ens_ jsou tam až od 30. 7. 2026,
+    // starší řádky mají jen deterministické hodnoty.
+    var latestData = TARGET_DAYS.map(function(day) {
+      var entries = byDay[day] || [];
+      return entries.length > 0 ? entries[entries.length - 1] : null;
+    });
+    rainVals = latestData.map(function(d) {
+      if (!d) return 0;
+      return d.ensSrazky != null ? d.ensSrazky : (d.srazky || 0);
+    });
+    probVals = latestData.map(function(d) {
+      if (!d) return null;
+      return d.ensPRain != null ? d.ensPRain : d.srazkyP;
+    });
+    srcNote = 'ze zápisů v tabulce';
+  }
+
+  var hint = document.getElementById('rain-hint');
+  if (hint) hint.textContent = 'mm za den · ' + srcNote;
 
   var datasets = [{
     label: 'Srážky (mm)',
@@ -2130,7 +2166,11 @@ function initEnsemble() {
       patchCardsWithEnsemble();
       patchSummaryWithEnsemble();
       renderProbTable();
-      runWhenContentReady(function() { renderSpreadChart(_spreadView); });
+      runWhenContentReady(function() {
+        renderSpreadChart(_spreadView);
+        // graf Srážek se překreslí z ensemblu, ať nedrží jiná čísla než karty
+        if (window._byDay) renderRainChart(window._byDay);
+      });
     })
     .catch(function() {
       document.getElementById('prob-loading').style.display = 'none';
