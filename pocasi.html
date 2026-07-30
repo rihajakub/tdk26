@@ -472,6 +472,23 @@ function weatherIcon(desc) {
   return '⛅';
 }
 
+// datum_zaznamu chodí jako "30.07.2026 6:05" (hodina bez nuly na začátku).
+// Řazení přes .sort() bez komparátoru porovnávalo tenhle text znak po znaku,
+// takže "01.07" skončilo před "28.06" a "15:45" před "6:05". Převod na
+// yyyyMMddHHmm je porovnatelný jako text i jako číslo.
+function zaznamKey(s) {
+  var m = /^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2}):(\d{2})/.exec(s || '');
+  if (!m) return s || '';
+  return m[3] + m[2] + m[1] + ('0' + m[4]).slice(-2) + m[5];
+}
+
+function sortZaznamy(labels) {
+  return labels.slice().sort(function(a, b) {
+    var ka = zaznamKey(a), kb = zaznamKey(b);
+    return ka < kb ? -1 : (ka > kb ? 1 : 0);
+  });
+}
+
 function parseNum(s) {
   if (s == null || s === '') return null;
   return parseFloat(String(s).replace(',', '.'));
@@ -678,7 +695,7 @@ function renderTempChart(byDay, dayFilter) {
     entries.forEach(function(e) { allLabels.add(e.zaznam); });
   });
 
-  var labels = Array.from(allLabels).sort();
+  var labels = sortZaznamy(Array.from(allLabels));
 
   activeDays.forEach(function(day) {
     var i = TARGET_DAYS.indexOf(day);
@@ -853,7 +870,7 @@ function renderReliabilityChart(byDay) {
   TARGET_DAYS.forEach(function(day) {
     (byDay[day] || []).forEach(function(e) { allLabels.add(e.zaznam); });
   });
-  var labels = Array.from(allLabels).sort();
+  var labels = sortZaznamy(Array.from(allLabels));
 
   var dayColors = [COLORS.green, COLORS.red, COLORS.blue, COLORS.muted];
   var datasets = TARGET_DAYS.map(function(day, i) {
@@ -918,7 +935,7 @@ function renderPRainHistoryChart(byDay) {
 
   if (!anyData) return;
 
-  var labels = Array.from(allLabels).sort();
+  var labels = sortZaznamy(Array.from(allLabels));
   var dayColors = [COLORS.green, COLORS.red, COLORS.blue, COLORS.muted];
 
   var datasets = TARGET_DAYS.map(function(day, i) {
