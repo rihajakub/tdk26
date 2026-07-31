@@ -93,6 +93,22 @@
   .stat-card.red .stat-value { color: var(--accent2); }
   .stat-card.blue .stat-value { color: var(--accent3); }
 
+  /* ── DAY-OVER-DAY ── */
+  /* Šipka drží směr čísla, barva to, jestli je změna k lepšímu — u srážek
+     proto vzniká ▲ červeně. Kdyby barva kopírovala směr, půlka metrik lže. */
+  .delta { display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.03em; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+  .delta.good { color: var(--accent);  background: rgba(61,104,0,0.11); }
+  .delta.bad  { color: var(--accent2); background: rgba(184,50,0,0.10); }
+  .delta.flat { color: var(--muted);   background: rgba(78,93,110,0.09); }
+  .delta.s { padding: 0; margin-left: 5px; background: none; font-size: 9px; }
+  .delta .dod { font-style: normal; font-size: 8.5px; letter-spacing: 0.1em; opacity: 0.6; padding-right: 1px; }
+  .stat-card .delta { margin-top: 9px; }
+  .fc-delta { margin: 3px 0 7px; }
+  .delta-legend { font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.75; color: var(--muted); letter-spacing: 0.03em; margin: 13px 0 16px; }
+  .delta-legend:empty { display: none; }
+  .delta-legend b { color: var(--text); font-weight: 500; }
+  .dod-chip { display: inline-block; background: var(--text); color: #fff; font-size: 9px; letter-spacing: 0.14em; padding: 2px 6px; border-radius: 3px; margin-right: 4px; vertical-align: 1px; }
+
   /* ── CHARTS ── */
   .chart-wrap { background: var(--surface); padding: 24px 20px 20px; box-shadow: var(--shadow); }
   canvas { display: block; width: 100%; }
@@ -215,6 +231,7 @@
       <span class="section-hint" id="hint-days"></span>
     </div>
     <div class="forecast-grid" id="forecast-cards"></div>
+    <div class="delta-legend" id="delta-legend"></div>
     <div class="stats-grid-4" id="summary-stats"></div>
 
     <!-- 1b. Pravděpodobnost jevů -->
@@ -633,12 +650,18 @@ function processData(rows) {
   var src = latestRows[0] ? latestRows[0].zdroj : '';
   document.getElementById('tag-source').textContent = src;
 
+  // Musí být dřív než render — karty i dlaždice si baseline berou odsud.
+  window._prevBase = buildPrevBaseline(data, latestZaznam);
+
   var minDny = latestRows.length > 0 ? latestRows[0].dny : null;
-  if (minDny != null) {
-    document.getElementById('hint-days').textContent = minDny + ' dní do startu';
+  var hint = minDny != null ? minDny + ' dní do startu' : '';
+  if (window._prevBase) {
+    hint += (hint ? ' · ' : '') + 'DoD Δ vs. ' + window._prevBase.short;
   }
+  document.getElementById('hint-days').textContent = hint;
   document.getElementById('hint-rows').textContent = data.length + ' záznamů';
 
+  renderDeltaLegend();
   renderCards(latestRows);
   renderSummary(latestRows);
   // karty vznikly teď — dolož do nich vše, co už dorazilo z API
@@ -681,6 +704,149 @@ function processData(rows) {
   });
 }
 
+// ── DAY-OVER-DAY ZMĚNA ────────────────────────────────────────────────────────
+// Šipka ukazuje směr, kterým se číslo pohnulo, barva to, jestli je pohyb
+// k lepšímu. Spojit obojí do „nahoru = zelená" nejde: víc srážek je ▲, ale
+// zhoršení. Teplota navíc nemá monotónní směr — 12→15 °C je zlepšení,
+// 27→30 °C zhoršení — takže se poměřuje vzdáleností od pásma, ve kterém se
+// dá jít celý den. Uvnitř pásma je změna neutrální, ne zelená.
+var COMFORT_LO = 16, COMFORT_HI = 26;
+
+// eps = pod jakou změnou to ještě považujeme za šum a nebarvíme.
+var DELTA_KINDS = {
+  temp: { unit: '°C', dec: 1, eps: 0.3, dir: 'comfort' },
+  rain: { unit: 'mm', dec: 1, eps: 0.5, dir: 'down' },
+  up:   { unit: 'pb', dec: 0, eps: 3,   dir: 'up'   },  // spolehlivost, jistota
+  down: { unit: 'pb', dec: 0, eps: 3,   dir: 'down' }   // P(déšť), P(bouřka)
+};
+
+function comfortDist(v) {
+  if (v < COMFORT_LO) return COMFORT_LO - v;
+  if (v > COMFORT_HI) return v - COMFORT_HI;
+  return 0;
+}
+
+function zaznamDay(s) {
+  var m = /^(\d{2}\.\d{2}\.\d{4})/.exec(s || '');
+  return m ? m[1] : (s || '');
+}
+
+function dayKey(s) {
+  var m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(s || '');
+  return m ? m[3] + m[2] + m[1] : '';
+}
+
+// Baseline = poslední běh z posledního dřívějšího dne. Když log den vynechá,
+// srovnáváme s tím, co v tabulce reálně je — proto se datum baseline vypisuje
+// do legendy i do tooltipů, ať nikdo nečte „vs. včera", když je to předevčírem.
+function buildPrevBaseline(data, latestZaznam) {
+  var todayKey = dayKey(zaznamDay(latestZaznam));
+  var prevDay = null;
+  data.forEach(function(d) {
+    var day = zaznamDay(d.zaznam);
+    if (!dayKey(day) || dayKey(day) >= todayKey) return;
+    if (prevDay === null || dayKey(day) > dayKey(prevDay)) prevDay = day;
+  });
+  if (prevDay === null) return null;
+
+  // V rámci dne mohlo proběhnout víc běhů (ruční spuštění) — bereme poslední.
+  var sameDay = data.filter(function(d) { return zaznamDay(d.zaznam) === prevDay; });
+  var lastZ = null;
+  sameDay.forEach(function(d) {
+    if (lastZ === null || zaznamKey(d.zaznam) > zaznamKey(lastZ)) lastZ = d.zaznam;
+  });
+  var rows = sameDay.filter(function(d) { return d.zaznam === lastZ; });
+  if (!rows.length) return null;
+
+  var byDay = {};
+  rows.forEach(function(d) { byDay[d.den] = d; });
+  return { day: prevDay, short: prevDay.slice(0, 6), zaznam: lastZ, rows: rows, byDay: byDay };
+}
+
+// Souhrnné dlaždice srovnáváme se stejně spočítaným souhrnem ze včerejška.
+// ens = true bere ensemble sloupce (ens_*), false deterministické — míchat je
+// nesmíme, jinak by delta měřila přepnutí modelu, ne změnu počasí.
+function aggBaseline(rows, ens) {
+  if (!rows || !rows.length) return null;
+  function nums(get) {
+    var out = [];
+    rows.forEach(function(r) { var v = get(r); if (v != null && !isNaN(v)) out.push(v); });
+    return out;
+  }
+  function avg(a) { return a.length ? a.reduce(function(x, y) { return x + y; }, 0) / a.length : null; }
+  function max(a) { return a.length ? Math.max.apply(null, a) : null; }
+  function sum(a) { return a.length ? a.reduce(function(x, y) { return x + y; }, 0) : null; }
+
+  var temps = nums(function(r) { return ens ? r.ensMed     : r.teplota; });
+  var rfs   = nums(function(r) { return ens ? r.ensRfMax   : r.rfMax;   });
+  var rains = nums(function(r) { return ens ? r.ensSrazky  : r.srazky;  });
+  var prain = nums(function(r) { return ens ? r.ensPRain   : r.srazkyP; });
+  var confs = nums(function(r) { return ens ? r.ensJistota : r.spoleh;  });
+
+  return {
+    avgTemp:  avg(temps), maxTemp: max(temps), avgRF: avg(rfs),
+    rainSum:  sum(rains), maxPRain: max(prain), avgConf: avg(confs)
+  };
+}
+
+function prevBase()        { return window._prevBase || null; }
+function prevRowFor(den)   { var b = prevBase(); return b && b.byDay[den] ? b.byDay[den] : null; }
+function prevAgg(ens)      {
+  var b = prevBase();
+  if (!b) return null;
+  var key = ens ? '_aggEns' : '_aggDet';
+  if (!b[key]) b[key] = aggBaseline(b.rows, ens) || {};
+  return b[key];
+}
+
+// Vrátí prázdný řetězec, kdykoli chybí baseline — dlaždice pak vypadá přesně
+// jako dřív, místo aby ukazovala šipku spočítanou z ničeho.
+function deltaBadge(now, prev, kindName, small) {
+  var k = DELTA_KINDS[kindName];
+  var b = prevBase();
+  if (!k || !b) return '';
+  if (now == null || prev == null || isNaN(now) || isNaN(prev)) return '';
+
+  var d = now - prev;
+  var cls = 'flat';
+  if (Math.abs(d) >= k.eps) {
+    if (k.dir === 'up')        cls = d > 0 ? 'good' : 'bad';
+    else if (k.dir === 'down') cls = d > 0 ? 'bad'  : 'good';
+    else {
+      var was = comfortDist(prev), is = comfortDist(now);
+      cls = is < was ? 'good' : (is > was ? 'bad' : 'flat');
+    }
+  }
+
+  var arrow = Math.abs(d) < k.eps ? '≈' : (d > 0 ? '▲' : '▼');
+  var mag   = Math.abs(d).toFixed(k.dec);
+  // Znaménko drží i podprahová změna — „≈ 0.4 mm" se jinak čte jako hodnota,
+  // ne jako rozdíl. Vypadne jen u nuly, kde by z něj bylo „+0".
+  var sign  = parseFloat(mag) === 0 ? '' : (d > 0 ? '+' : '−');
+  var title = 'Day over Day · ' + b.day + ': ' + prev.toFixed(k.dec) + ' ' + k.unit.replace('pb', '%') +
+              '  →  nyní: ' + now.toFixed(k.dec) + ' ' + k.unit.replace('pb', '%');
+
+  // Štítek jen u velkých badgeů — u drobných řádků v metadatech by se z něj
+  // stal šum a význam si stejně nese ta velká šipka o pár řádků výš.
+  return '<span class="delta ' + cls + (small ? ' s' : '') + '" title="' + title + '">' +
+           (small ? '' : '<i class="dod">DoD</i>') +
+           arrow + ' ' + sign + mag + ' ' + k.unit +
+         '</span>';
+}
+
+function renderDeltaLegend() {
+  var el = document.getElementById('delta-legend');
+  if (!el) return;
+  var b = prevBase();
+  if (!b) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<span class="dod-chip">DoD</span> <b>Day over Day — změna oproti zápisu z ' + b.day + '.</b> ' +
+    'Šipka drží směr čísla, barva to, jestli je změna k lepšímu.<br>' +
+    'Víc srážek je proto ▲ červeně. Teplota se poměřuje s pásmem ' +
+    COMFORT_LO + '–' + COMFORT_HI + ' °C, uvnitř něj je změna neutrální. ' +
+    '≈ = pod prahem šumu.';
+}
+
 function renderCards(rows) {
   var container = document.getElementById('forecast-cards');
   container.innerHTML = '';
@@ -705,17 +871,21 @@ function renderCards(rows) {
     if (r.srazkyP != null) rainText += ' (' + r.srazkyP + '%)';
 
     var spolehCls = reliabilityClass(r.spoleh || 0);
+    var pb = prevRowFor(day);
 
     card.innerHTML =
       '<div class="fc-card-accent" style="background:' + dayColors[i] + '"></div>' +
       '<div class="fc-day">' + DAY_NAMES[i] + ' ' + day.split('.').slice(0,2).join('.') + '</div>' +
       '<div class="fc-icon">' + weatherIcon(r.popis) + '</div>' +
       '<div class="fc-temp">' + r.teplota.toFixed(1) + '<span class="unit">°C</span></div>' +
+      '<div class="fc-delta">' + (pb ? deltaBadge(r.teplota, pb.teplota, 'temp') : '') + '</div>' +
       '<div class="fc-desc">' + r.popis + '</div>' +
-      (rainText ? '<div class="fc-rain">💧 ' + rainText + '</div>' : '') +
+      (rainText ? '<div class="fc-rain">💧 ' + rainText +
+        (pb ? deltaBadge(r.srazky, pb.srazky, 'rain', true) : '') + '</div>' : '') +
       '<div class="fc-meta">' +
         '<div class="sheet-rows">' +
-          '<div class="fc-meta-row"><span class="fc-meta-label">Spolehl.</span><span class="fc-meta-value ' + spolehCls + '">' + (r.spoleh != null ? r.spoleh + '%' : '—') + '</span></div>' +
+          '<div class="fc-meta-row"><span class="fc-meta-label">Spolehl.</span><span class="fc-meta-value ' + spolehCls + '">' + (r.spoleh != null ? r.spoleh + '%' : '—') +
+            (pb ? deltaBadge(r.spoleh, pb.spoleh, 'up', true) : '') + '</span></div>' +
           (r.rozptyl != null ? '<div class="fc-meta-row"><span class="fc-meta-label">Rozptyl</span><span class="fc-meta-value">±' + r.rozptyl.toFixed(1) + '°C</span></div>' : '') +
         '</div>' +
       '</div>';
@@ -735,11 +905,13 @@ function renderSummary(rows) {
   var totalRain = rains.reduce(function(a,b){return a+b;},0);
   var avgSpoleh = spolehs.length > 0 ? spolehs.reduce(function(a,b){return a+b;},0) / spolehs.length : 0;
 
+  var p = prevAgg(false) || {};
+
   container.innerHTML =
-    '<div class="stat-card highlight"><div class="stat-card-bar" style="background:' + COLORS.green + '"></div><div class="stat-icon">🌡️</div><div class="stat-value">' + avgTemp.toFixed(1) + '<span class="unit">°C</span></div><div class="stat-label">Průměrná teplota</div></div>' +
-    '<div class="stat-card red"><div class="stat-card-bar" style="background:' + COLORS.red + '"></div><div class="stat-icon">🔥</div><div class="stat-value">' + maxTemp.toFixed(1) + '<span class="unit">°C</span></div><div class="stat-label">Maximum</div></div>' +
-    '<div class="stat-card blue"><div class="stat-card-bar" style="background:' + COLORS.blue + '"></div><div class="stat-icon">💧</div><div class="stat-value">' + totalRain.toFixed(1) + '<span class="unit">mm</span></div><div class="stat-label">Celkové srážky</div></div>' +
-    '<div class="stat-card"><div class="stat-card-bar" style="background:' + COLORS.muted + '"></div><div class="stat-icon">🎯</div><div class="stat-value">' + avgSpoleh.toFixed(0) + '<span class="unit">%</span></div><div class="stat-label">Spolehlivost</div></div>';
+    '<div class="stat-card highlight"><div class="stat-card-bar" style="background:' + COLORS.green + '"></div><div class="stat-icon">🌡️</div><div class="stat-value">' + avgTemp.toFixed(1) + '<span class="unit">°C</span></div><div class="stat-label">Průměrná teplota</div>' + deltaBadge(avgTemp, p.avgTemp, 'temp') + '</div>' +
+    '<div class="stat-card red"><div class="stat-card-bar" style="background:' + COLORS.red + '"></div><div class="stat-icon">🔥</div><div class="stat-value">' + maxTemp.toFixed(1) + '<span class="unit">°C</span></div><div class="stat-label">Maximum</div>' + deltaBadge(maxTemp, p.maxTemp, 'temp') + '</div>' +
+    '<div class="stat-card blue"><div class="stat-card-bar" style="background:' + COLORS.blue + '"></div><div class="stat-icon">💧</div><div class="stat-value">' + totalRain.toFixed(1) + '<span class="unit">mm</span></div><div class="stat-label">Celkové srážky</div>' + deltaBadge(totalRain, p.rainSum, 'rain') + '</div>' +
+    '<div class="stat-card"><div class="stat-card-bar" style="background:' + COLORS.muted + '"></div><div class="stat-icon">🎯</div><div class="stat-value">' + avgSpoleh.toFixed(0) + '<span class="unit">%</span></div><div class="stat-label">Spolehlivost</div>' + deltaBadge(avgSpoleh, p.avgConf, 'up') + '</div>';
 }
 
 function renderTempChart(byDay, dayFilter) {
@@ -2040,9 +2212,15 @@ function patchCardsWithEnsemble() {
     // Teplota i Real Feel musí být ze stejného zdroje, jinak karta lže —
     // proto obojí bereme jako medián ensemblu. Deterministický model
     // (jiná hodnota, jen jeden běh) se ukazuje zvlášť v meta bloku.
+    // Baseline musí být ze stejného zdroje jako zobrazená hodnota, proto
+    // ensemble sloupce ze sheetu (ens_*), ne deterministické teplota_C.
+    var pb = prevRowFor(isoToCz(iso));
+
     if (st.tmax) {
       var tempEl = card.querySelector('.fc-temp');
       if (tempEl) tempEl.innerHTML = st.tmax.med.toFixed(1) + '<span class="unit">°C</span>';
+      var dEl = card.querySelector('.fc-delta');
+      if (dEl) dEl.innerHTML = pb ? deltaBadge(st.tmax.med, pb.ensMed, 'temp') : '';
     }
 
     // Real Feel pod teplotu
@@ -2077,12 +2255,13 @@ function patchCardsWithEnsemble() {
     if (iconEl) iconEl.textContent = icon;
     var rainEl = card.querySelector('.fc-rain');
     var mmMed = st.precip ? st.precip.med : null;
-    var rainTxt = '💧 ' + (mmMed != null ? mmMed.toFixed(1) + ' mm' : '—') + ' · P ' + pRain + ' %';
-    if (rainEl) { rainEl.textContent = rainTxt; }
+    var rainTxt = '💧 ' + (mmMed != null ? mmMed.toFixed(1) + ' mm' : '—') + ' · P ' + pRain + ' %' +
+                  (pb ? deltaBadge(pRain, pb.ensPRain, 'down', true) : '');
+    if (rainEl) { rainEl.innerHTML = rainTxt; }
     else {
       var nr = document.createElement('div');
       nr.className = 'fc-rain';
-      nr.textContent = rainTxt;
+      nr.innerHTML = rainTxt;
       var d2 = card.querySelector('.fc-rf') || card.querySelector('.fc-desc');
       if (d2) d2.parentNode.insertBefore(nr, d2.nextSibling);
     }
@@ -2100,7 +2279,8 @@ function patchCardsWithEnsemble() {
       rows.className = 'ens-rows';
       rows.innerHTML =
         '<div class="fc-meta-row"><span class="fc-meta-label">Jistota ens.</span>' +
-          '<span class="fc-meta-value ' + confCls + '">' + (conf != null ? conf + ' %' : '—') + '</span></div>' +
+          '<span class="fc-meta-value ' + confCls + '">' + (conf != null ? conf + ' %' : '—') +
+          (pb ? deltaBadge(conf, pb.ensJistota, 'up', true) : '') + '</span></div>' +
         (st.tmax ? '<div class="fc-meta-row"><span class="fc-meta-label">p10–p90</span>' +
           '<span class="fc-meta-value">' + st.tmax.p10.toFixed(0) + '–' + st.tmax.p90.toFixed(0) + '°C</span></div>' : '') +
         (det && det.max != null ? '<div class="fc-meta-row"><span class="fc-meta-label">RF (det.)</span>' +
@@ -2140,20 +2320,28 @@ function patchSummaryWithEnsemble() {
   var avgRF   = rfs.length ? avg(rfs) : null;
   var avgConf = confs.length ? Math.round(avg(confs)) : null;
 
-  function tile(cls, bar, ico, val, unit, label) {
+  function tile(cls, bar, ico, val, unit, label, delta) {
     return '<div class="stat-card ' + cls + '"><div class="stat-card-bar" style="background:' + bar + '"></div>' +
       '<div class="stat-icon">' + ico + '</div>' +
       '<div class="stat-value">' + val + '<span class="unit">' + unit + '</span></div>' +
-      '<div class="stat-label">' + label + '</div></div>';
+      '<div class="stat-label">' + label + '</div>' + (delta || '') + '</div>';
   }
 
+  var p = prevAgg(true) || {};
+
   container.innerHTML =
-    tile('highlight', COLORS.green, '🌡️', avgTemp.toFixed(1), '°C', 'Průměrná teplota') +
-    tile('red',       COLORS.red,   '🔥', maxTemp.toFixed(1), '°C', 'Nejteplejší den') +
-    (avgRF != null ? tile('red', '#c94010', '🥵', avgRF.toFixed(1), '°C', 'Real Feel průměr') : '') +
-    tile('blue',      COLORS.blue,  '💧', rainSum.toFixed(1), 'mm', 'Srážky za 4 dny') +
-    tile('blue',      COLORS.blue,  '🌧️', Math.round(maxPRain * 100), '%', 'Max P(déšť) za den') +
-    tile('',          COLORS.muted, '🎯', (avgConf != null ? avgConf : '—'), '%', 'Jistota ensemblu');
+    tile('highlight', COLORS.green, '🌡️', avgTemp.toFixed(1), '°C', 'Průměrná teplota',
+         deltaBadge(avgTemp, p.avgTemp, 'temp')) +
+    tile('red',       COLORS.red,   '🔥', maxTemp.toFixed(1), '°C', 'Nejteplejší den',
+         deltaBadge(maxTemp, p.maxTemp, 'temp')) +
+    (avgRF != null ? tile('red', '#c94010', '🥵', avgRF.toFixed(1), '°C', 'Real Feel průměr',
+         deltaBadge(avgRF, p.avgRF, 'temp')) : '') +
+    tile('blue',      COLORS.blue,  '💧', rainSum.toFixed(1), 'mm', 'Srážky za 4 dny',
+         deltaBadge(rainSum, p.rainSum, 'rain')) +
+    tile('blue',      COLORS.blue,  '🌧️', Math.round(maxPRain * 100), '%', 'Max P(déšť) za den',
+         deltaBadge(Math.round(maxPRain * 100), p.maxPRain, 'down')) +
+    tile('',          COLORS.muted, '🎯', (avgConf != null ? avgConf : '—'), '%', 'Jistota ensemblu',
+         deltaBadge(avgConf, p.avgConf, 'up'));
 
   container.style.gridTemplateColumns =
     window.matchMedia('(max-width: 600px)').matches ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)';
