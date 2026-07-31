@@ -69,6 +69,49 @@
   .pop-ele { font-family: 'DM Mono', monospace; font-size: 10px; color: #7a8799; }
 
   .chart-section { margin-bottom: 40px; }
+
+  /* ── STOUPÁNÍ ── */
+  .climb-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 2px; }
+  .cs-cell { background: var(--surface); padding: 16px 18px; }
+  .cs-val { font-family: 'Bebas Neue', sans-serif; font-size: 30px; line-height: 1; color: var(--text); }
+  .cs-val .u { font-size: 14px; color: var(--muted); margin-left: 2px; }
+  .cs-lbl { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
+  .climb-grid { display: grid; grid-template-columns: 1fr; gap: 2px; }
+  .climb-card { background: var(--surface); padding: 18px 20px 18px; transition: background 0.15s; position: relative; scroll-margin-top: 20px; }
+  .climb-card.active { background: var(--surface2); }
+  .climb-card.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+  .cc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding-bottom: 11px; border-bottom: 1px solid var(--border); }
+  .cc-name { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .cc-loc { font-size: 17px; color: var(--text); font-weight: 500; margin-left: 9px; }
+  .cc-body { display: grid; grid-template-columns: 270px 1fr; gap: 18px; align-items: start; }
+  .cc-map { height: 210px; background: var(--surface2); }
+  .cc-map .leaflet-container { background: #e8ebf0; }
+  .cc-cat { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.1em; padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+  .cc-cat.k3 { background: #b83200; color: #fff; }
+  .cc-cat.k4 { background: #e0e5ee; color: #4a5568; }
+  .cc-cat.nk { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .cc-where { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 13px; }
+  .cc-nums { display: flex; gap: 20px; margin-bottom: 12px; }
+  .cc-num-v { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; color: var(--text); }
+  .cc-num-v .u { font-size: 13px; color: var(--muted); margin-left: 1px; }
+  .cc-num-v.gain { color: #4a7a00; }
+  .cc-num-l { font-family: 'DM Mono', monospace; font-size: 8.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+  .cc-prof { width: 100%; height: 86px; display: block; margin-bottom: 10px; }
+  .cc-foot { font-family: 'DM Mono', monospace; font-size: 9.5px; color: var(--muted); line-height: 1.65; border-top: 1px solid var(--border); padding-top: 9px; }
+  .cc-foot b { color: var(--text); font-weight: 500; }
+  .grade-legend { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 14px; font-family: 'DM Mono', monospace; font-size: 9.5px; color: var(--muted); }
+  .grade-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .grade-legend i { width: 11px; height: 11px; border-radius: 2px; display: block; }
+  .climb-note { font-size: 12px; color: var(--muted); line-height: 1.65; margin-top: 14px; background: var(--surface); padding: 15px 20px; border-left: 3px solid var(--accent3); }
+  .climb-note b { color: var(--text); font-weight: 500; }
+  /* Čísla stoupání na hlavní mapě — proklik do detailu daného kopce. */
+  .climb-pin { background: #b83200; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; border: 2px solid #fff; box-shadow: 0 2px 7px rgba(0,0,0,0.3); cursor: pointer; }
+  .climb-pin.nk { background: #4e5d6e; }
+  @media (max-width: 700px) {
+    .cc-body { grid-template-columns: 1fr; }
+    .cc-map { height: 170px; }
+    .climb-summary { grid-template-columns: repeat(2, 1fr); }
+  }
   .chart-wrap { background: var(--surface); padding: 28px 16px 16px; position: relative; }
   canvas { display: block; width: 100%; }
 
@@ -329,12 +372,12 @@
       <div class="header-text">
         <div class="header-label">Cyklotrasa · GPX analýza · 3 země</div>
         <h1>TDK<br><span class="accent">2026</span></h1>
-        <div class="header-sub">Rybniště → Varnsdorf → Zittau (DE) → Trojmezí CZ/PL/DE → Hrádek → Liberec → Kokonín</div>
+        <div class="header-sub">Rybniště → Lužické hory → Jonsdorf (DE) → Zittau (DE) → Trojmezí CZ/PL/DE → Hrádek → Liberec → Kokonín</div>
         <div class="tags">
           <div class="tag">🚵 Gravel / MTB</div>
           <div class="tag">🇨🇿 🇩🇪 🇵🇱 3 země</div>
-          <div class="tag">📏 74,86 km</div>
-          <div class="tag">⬆ 944 m převýšení</div>
+          <div class="tag">📏 76,57 km</div>
+          <div class="tag">⬆ 973 m převýšení</div>
           <a class="tag-link" href="pocasi.html">☁️ Počasí</a>
         </div>
       </div>
@@ -389,7 +432,7 @@
             </div>
           </div>
           <div class="tl-event dimmed">
-            <div class="tl-time">10:26<br>→ 11:00</div>
+            <div class="tl-time">10:26<br>→ 10:45</div>
             <div class="tl-dot prep"></div>
             <div class="tl-info">
               <div class="tl-name">Příprava na startu</div>
@@ -401,10 +444,10 @@
 
       <!-- BIKE BLOCK -->
       <div class="tl-block bike-block">
-        <div class="tl-block-label">🚵 KOLO · Rybniště → Kokonín · 74,86 km</div>
+        <div class="tl-block-label">🚵 KOLO · Rybniště → Kokonín · 76,57 km</div>
         <div class="tl-events">
           <div class="tl-event">
-            <div class="tl-time">11:00</div>
+            <div class="tl-time">10:45</div>
             <div class="tl-dot start"></div>
             <div class="tl-info">
               <div class="tl-name">🟢 Rybniště — START</div>
@@ -412,67 +455,67 @@
             </div>
           </div>
           <div class="tl-event">
-            <div class="tl-time">11:27<br><span class="break-tag">+5 min</span></div>
+            <div class="tl-time">11:04<br><span class="break-tag">+5 min</span></div>
             <div class="tl-dot bike"></div>
             <div class="tl-info">
               <div class="tl-name">🗼 Jedlová oblast</div>
-              <div class="tl-sub">~570 m · km 6 · rychlá zastávka, výhled</div>
+              <div class="tl-sub">~575 m · km 5,5 · rychlá zastávka, výhled</div>
             </div>
           </div>
           <div class="tl-event">
-            <div class="tl-time">12:39</div>
+            <div class="tl-time">11:35</div>
             <div class="tl-dot peak"></div>
             <div class="tl-info">
-              <div class="tl-name">🏔 Nejvyšší bod — 658 m</div>
-              <div class="tl-sub">km 25 · Lužické hory · pak rychlý sjezd</div>
+              <div class="tl-name">🏔 Nejvyšší bod — 670 m</div>
+              <div class="tl-sub">km 12,9 · Lužické hory · pak dlouhý sjezd do údolí Nisy</div>
             </div>
           </div>
           <div class="tl-event">
-            <div class="tl-time">12:48</div>
+            <div class="tl-time">12:33</div>
             <div class="tl-dot de"></div>
             <div class="tl-info">
-              <div class="tl-name">🇩🇪 Zittau — vstup do Německa</div>
-              <div class="tl-sub">235 m · km 29 · přechod CZ→DE</div>
+              <div class="tl-name">🇩🇪 Zittau</div>
+              <div class="tl-sub">242 m · km 29,3 · v Německu už od km 12,8</div>
             </div>
           </div>
           <div class="tl-event highlight-event">
-            <div class="tl-time">13:00</div>
+            <div class="tl-time">12:45</div>
             <div class="tl-dot trojmezi"></div>
             <div class="tl-info">
               <div class="tl-name">🌍 Trojmezí CZ / PL / DE</div>
-              <div class="tl-sub">237 m · km 33 · unikátní místo tří hranic</div>
+              <div class="tl-sub">240 m · km 32,7 · unikátní místo tří hranic</div>
             </div>
           </div>
           <div class="tl-event">
-            <div class="tl-time">13:12<br><span class="break-tag">oběd 60 min</span></div>
+            <div class="tl-time">12:58<br><span class="break-tag">oběd 60 min</span></div>
             <div class="tl-dot stop"></div>
             <div class="tl-info">
               <div class="tl-name">🍽 Hrádek nad Nisou — OBĚD</div>
-              <div class="tl-sub">246 m · km 37 · odjezd 14:12</div>
+              <div class="tl-sub">250 m · km 36,3 · odjezd 13:58</div>
             </div>
           </div>
           <div class="tl-event">
-            <div class="tl-time">14:50</div>
+            <div class="tl-time">14:40</div>
             <div class="tl-dot bike"></div>
             <div class="tl-info">
               <div class="tl-name">🏙 Chrastava</div>
-              <div class="tl-sub">294 m · km 49 · podhůří Jizerských hor</div>
+              <div class="tl-sub">296 m · km 48,4 · podhůří Jizerských hor</div>
             </div>
           </div>
           <div class="tl-event">
-            <div class="tl-time">15:20<br><span class="break-tag">+20 min</span></div>
+            <div class="tl-time">15:19<br><span class="break-tag">+20 min</span></div>
             <div class="tl-dot stop"></div>
             <div class="tl-info">
               <div class="tl-name">🏙 Liberec</div>
-              <div class="tl-sub">351 m · km 58 · pauza, servis, káva</div>
+              <div class="tl-sub">350 m · km 59,6 · pauza, servis, káva</div>
             </div>
           </div>
           <div class="tl-event">
-            <div class="tl-time">16:48</div>
+            <div class="tl-time">16:39</div>
             <div class="tl-dot finish"></div>
             <div class="tl-info">
               <div class="tl-name">🏁 Kokonín — CÍL</div>
-              <div class="tl-sub">624 m · km 74,9 · celkem ~5,8 h jízdy</div>
+              <div class="tl-sub">615 m · km 76,6 · 4 h 29 min čisté jízdy</div>
             </div>
           </div>
         </div>
@@ -485,7 +528,7 @@
   <div class="stat-strip anim anim-2">
     <div class="stat-pill main">
       <div class="sp-icon">📏</div>
-      <div class="sp-val">74,86<span class="sp-unit">km</span></div>
+      <div class="sp-val">76,57<span class="sp-unit">km</span></div>
       <div class="sp-lbl">Vzdálenost</div>
     </div>
     <div class="stat-pill-divider"></div>
@@ -497,25 +540,25 @@
     <div class="stat-pill-divider"></div>
     <div class="stat-pill up">
       <div class="sp-icon">⬆</div>
-      <div class="sp-val">944<span class="sp-unit">m</span></div>
+      <div class="sp-val">973<span class="sp-unit">m</span></div>
       <div class="sp-lbl">Nahoru</div>
     </div>
     <div class="stat-pill-divider"></div>
     <div class="stat-pill down">
       <div class="sp-icon">⬇</div>
-      <div class="sp-val">787<span class="sp-unit">m</span></div>
+      <div class="sp-val">818<span class="sp-unit">m</span></div>
       <div class="sp-lbl">Dolů</div>
     </div>
     <div class="stat-pill-divider"></div>
     <div class="stat-pill peak">
       <div class="sp-icon">🏔</div>
-      <div class="sp-val">658<span class="sp-unit">m</span></div>
+      <div class="sp-val">670<span class="sp-unit">m</span></div>
       <div class="sp-lbl">Nejvýše</div>
     </div>
     <div class="stat-pill-divider"></div>
     <div class="stat-pill">
       <div class="sp-icon">🟢→🏁</div>
-      <div class="sp-val">461→624<span class="sp-unit">m</span></div>
+      <div class="sp-val">462→615<span class="sp-unit">m</span></div>
       <div class="sp-lbl">Start → Cíl</div>
     </div>
   </div>
@@ -540,6 +583,18 @@
     </div>
   </div>
 
+  <!-- STOUPÁNÍ -->
+  <div class="chart-section anim anim-3" id="climbs-section">
+    <div class="section-header">
+      <span class="section-title">Stoupání · analýza</span>
+      <span class="section-hint" id="climb-hint">čísla na mapě výše vedou sem</span>
+    </div>
+    <div class="climb-summary" id="climb-summary"></div>
+    <div class="climb-grid" id="climb-grid"></div>
+    <div class="grade-legend" id="grade-legend"></div>
+    <div class="climb-note" id="climb-note"></div>
+  </div>
+
   <!-- DIFFICULTY -->
   <div class="diff-section anim anim-4">
     <div class="diff-dial">
@@ -555,7 +610,7 @@
     </div>
     <div class="diff-text">
       <h3>Středně náročná</h3>
-      <p>Hlavní výjezd hned na začátku přes Lužické hory (km 0–25, max 658 m). Pak trasa sestupuje do Zittau a přes Trojmezí k Hrádku nad Nisou (min 232 m). Závěrečných 15 km stoupá +280 m do Kokonína. Terén gravel-friendly — lesní silničky + asfalt přes 3 státy.</p>
+      <p>Hlavní výjezd hned na začátku přes Lužické hory (km 0–13, max 670 m). Pak trasa sestupuje do Zittau a přes Trojmezí k Hrádku nad Nisou (min 235 m). Závěrečných 17 km stoupá +265 m do Kokonína. Terén gravel-friendly — lesní silničky + asfalt přes 3 státy.</p>
     </div>
   </div>
 
@@ -572,54 +627,54 @@
         <div class="ms-info"><div class="ms-name">Rybniště — start</div><div class="ms-ele">461 m · 🇨🇿</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🗼</div><div class="ms-km">~6 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:8%"></div></div>
-        <div class="ms-info"><div class="ms-name">Jedlová — rozhledna (poblíž)</div><div class="ms-ele">~570 m · odbočka 840 m od trasy</div></div>
+        <div class="ms-flag">🗼</div><div class="ms-km">5,5 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:7.2%"></div></div>
+        <div class="ms-info"><div class="ms-name">Jedlová — rozhledna (poblíž)</div><div class="ms-ele">~575 m · odbočka 840 m od trasy</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🏔</div><div class="ms-km">25 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:33%"></div></div>
-        <div class="ms-info"><div class="ms-name">Nejvyšší bod trasy</div><div class="ms-ele">658 m · Lužické hory 🇨🇿</div></div>
+        <div class="ms-flag">🏔</div><div class="ms-km">12,9 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:16.8%"></div></div>
+        <div class="ms-info"><div class="ms-name">Nejvyšší bod trasy</div><div class="ms-ele">670 m · Lužické hory 🇨🇿</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🇩🇪</div><div class="ms-km">29 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:38.7%"></div></div>
-        <div class="ms-info"><div class="ms-name">Zittau — vstup do Německa</div><div class="ms-ele">235 m · přechod CZ→DE</div></div>
+        <div class="ms-flag">🇩🇪</div><div class="ms-km">29,3 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:38.3%"></div></div>
+        <div class="ms-info"><div class="ms-name">Zittau</div><div class="ms-ele">242 m · uprostřed německého úseku</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🌍</div><div class="ms-km">33 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:44%"></div></div>
-        <div class="ms-info"><div class="ms-name">Trojmezí CZ / PL / DE</div><div class="ms-ele">237 m · 🇨🇿 🇵🇱 🇩🇪 unikátní místo</div></div>
+        <div class="ms-flag">🌍</div><div class="ms-km">32,7 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:42.7%"></div></div>
+        <div class="ms-info"><div class="ms-name">Trojmezí CZ / PL / DE</div><div class="ms-ele">240 m · 🇨🇿 🇵🇱 🇩🇪 unikátní místo</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🌊</div><div class="ms-km">30–63 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:40%"></div></div>
-        <div class="ms-info"><div class="ms-name">Nejnižší úsek — údolí Nisy</div><div class="ms-ele">min. 232 m · téměř rovný terén</div></div>
+        <div class="ms-flag">🌊</div><div class="ms-km">30–64 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:41.8%"></div></div>
+        <div class="ms-info"><div class="ms-name">Nejnižší úsek — údolí Nisy</div><div class="ms-ele">min. 235 m · téměř rovný terén</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🏘</div><div class="ms-km">37 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:49%"></div></div>
-        <div class="ms-info"><div class="ms-name">Hrádek nad Nisou</div><div class="ms-ele">246 m · zpět 🇨🇿 · občerstvení</div></div>
+        <div class="ms-flag">🏘</div><div class="ms-km">36,3 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:47.4%"></div></div>
+        <div class="ms-info"><div class="ms-name">Hrádek nad Nisou</div><div class="ms-ele">250 m · zpět 🇨🇿 · občerstvení</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🏙</div><div class="ms-km">49 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:65%"></div></div>
-        <div class="ms-info"><div class="ms-name">Chrastava</div><div class="ms-ele">294 m · podhůří Jizerských hor</div></div>
+        <div class="ms-flag">🏙</div><div class="ms-km">48,4 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:63.2%"></div></div>
+        <div class="ms-info"><div class="ms-name">Chrastava</div><div class="ms-ele">296 m · podhůří Jizerských hor</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🏙</div><div class="ms-km">58 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:77%"></div></div>
-        <div class="ms-info"><div class="ms-name">Liberec</div><div class="ms-ele">351 m · servis, obchody</div></div>
+        <div class="ms-flag">🏙</div><div class="ms-km">59,6 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:77.8%"></div></div>
+        <div class="ms-info"><div class="ms-name">Liberec</div><div class="ms-ele">350 m · servis, obchody</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">⬆</div><div class="ms-km">63–75 <span class="unit">km</span></div>
-        <div class="ms-bar-wrap"><div class="ms-bar" style="width:84%"></div></div>
-        <div class="ms-info"><div class="ms-name">Závěrečný výjezd</div><div class="ms-ele">+280 m do Kokonína · Jizerské hory</div></div>
+        <div class="ms-flag">⬆</div><div class="ms-km">64–76,6 <span class="unit">km</span></div>
+        <div class="ms-bar-wrap"><div class="ms-bar" style="width:87%"></div></div>
+        <div class="ms-info"><div class="ms-name">Závěrečný výjezd</div><div class="ms-ele">+265 m do Kokonína · Jizerské hory</div></div>
       </div>
       <div class="ms-row">
-        <div class="ms-flag">🏁</div><div class="ms-km">74,9 <span class="unit">km</span></div>
+        <div class="ms-flag">🏁</div><div class="ms-km">76,6 <span class="unit">km</span></div>
         <div class="ms-bar-wrap"><div class="ms-bar" style="width:100%"></div></div>
-        <div class="ms-info"><div class="ms-name">Kokonín — cíl</div><div class="ms-ele">624 m · Jablonec nad Nisou 🇨🇿</div></div>
+        <div class="ms-info"><div class="ms-name">Kokonín — cíl</div><div class="ms-ele">615 m · Jablonec nad Nisou 🇨🇿</div></div>
       </div>
     </div>
   </div>
@@ -637,8 +692,8 @@
       </div>
       <div class="tip-row">
         <div class="tip-icon">🌍</div>
-        <div><div class="tip-name">Průjezd Německem (km 29–33)</div>
-        <div class="tip-text">Trasa prochází přes Zittau a Trojmezí — platební karta stačí. Cyklostezky v Německu jsou výborně značené. Vezmi doklad totožnosti (občanský průkaz nebo pas).</div></div>
+        <div><div class="tip-name">Průjezd Německem (km 12,8–33,7)</div>
+        <div class="tip-text">Německem vede <strong>20,9 km</strong>, tedy skoro třetina trasy — od hřebene nad Pěnkavčím vrchem přes Jonsdorf a Zittau až k Trojmezí. Platební karta stačí, cyklostezky jsou výborně značené. Vezmi doklad totožnosti (občanský průkaz nebo pas).</div></div>
       </div>
       <div class="tip-row">
         <div class="tip-icon">🚂</div>
@@ -648,19 +703,19 @@
       <div class="tip-row">
         <div class="tip-icon">🛠</div>
         <div><div class="tip-name">Servis kola</div>
-        <div class="tip-text">Cykloservis: Liberec (km 58) — největší šance na opravu. Berte s sebou: 2× duše, mini pumpa, multitool, záplaty. Trasa je gravel-friendly.</div></div>
+        <div class="tip-text">Cykloservis: Liberec (km 59,6) — největší šance na opravu. Berte s sebou: 2× duše, mini pumpa, multitool, záplaty. Trasa je gravel-friendly.</div></div>
       </div>
       <div class="tip-row">
         <div class="tip-icon">⛅</div>
         <div><div class="tip-name">Terén a povrchy</div>
-        <div class="tip-text">Lužické hory (km 0–26): lesní silničky, může být mokro a bahno. Údolí Nisy (km 26–63): téměř rovný asfalt nebo zpevněná cesta. Závěr (km 63–75): mix povrchů do kopce.</div></div>
+        <div class="tip-text">Lužické hory (km 0–26): lesní silničky, může být mokro a bahno. Údolí Nisy (km 26–64): téměř rovný asfalt nebo zpevněná cesta. Závěr (km 64–76,6): mix povrchů do kopce.</div></div>
       </div>
     </div>
   </div>
 
   <div style="height:32px"></div>
   <footer class="anim anim-5">
-    <div class="footer-text">TDK 2026 · export.gpx · mapy.com · 🇨🇿 🇩🇪 🇵🇱</div>
+    <div class="footer-text">TDK 2026 · TDK 2026 Final.gpx · mapy.com · 🇨🇿 🇩🇪 🇵🇱</div>
     <div class="footer-dots"><span></span><span></span><span></span></div>
   </footer>
 </div>
@@ -672,9 +727,10 @@
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const DISTS = [0.0,0.51,1.02,1.72,2.13,2.6,3.03,3.65,4.09,4.69,5.02,5.61,6.05,6.54,7.1,7.51,8.05,8.51,9.0,9.57,10.04,10.52,11.03,11.53,12.05,12.51,13.01,13.51,14.01,14.51,15.05,15.5,16.02,16.56,17.01,17.5,18.02,18.53,19.06,19.66,20.13,20.73,21.04,21.53,22.02,22.52,23.02,23.52,24.0,24.55,25.04,25.52,26.05,26.52,27.07,27.51,28.02,28.51,29.0,29.51,30.0,30.5,31.08,31.5,32.0,32.5,33.04,33.52,34.0,34.52,35.05,35.53,36.0,36.51,37.06,37.5,38.01,38.53,39.01,39.52,40.02,40.52,41.0,41.51,42.06,42.5,43.01,43.53,44.0,44.52,45.02,45.52,46.0,46.52,47.01,47.55,48.0,48.51,49.05,49.51,50.01,50.51,51.11,51.52,52.05,52.52,53.11,53.53,54.09,54.5,55.0,55.53,56.03,56.53,57.04,57.56,58.26,58.51,59.04,59.5,60.03,60.52,61.05,61.52,62.01,62.5,63.01,63.56,64.01,64.52,65.02,65.53,66.0,66.52,67.01,67.54,68.02,68.55,69.06,69.53,70.01,70.5,71.04,71.53,72.02,72.52,73.0,73.52,74.01,74.5];
-const ELES = [461,459,464,494,505,488,489,533,536,559,564,569,563,550,548,552,584,598,586,591,613,625,621,638,652,648,655,628,566,533,471,432,408,405,401,391,382,366,363,395,401,375,364,344,322,304,294,286,280,281,269,256,245,241,239,237,236,235,235,236,232,234,233,232,234,236,237,240,244,244,253,243,243,245,247,249,254,256,262,259,266,270,268,269,268,269,277,273,273,275,277,279,282,280,282,286,288,292,313,317,337,348,359,354,333,325,326,336,345,352,349,339,337,342,356,347,351,360,374,374,365,363,367,372,375,374,381,420,423,431,464,487,494,499,530,558,570,547,528,530,524,548,584,608,624,621,609,603,622,624];
-const MAP_PTS = [[50.88303,14.50995],[50.87144,14.52218],[50.85902,14.53835],[50.84848,14.5569],[50.84316,14.57533],[50.84051,14.59756],[50.8558,14.60804],[50.86226,14.63028],[50.86715,14.64974],[50.86973,14.67367],[50.87601,14.7004],[50.88016,14.72177],[50.88994,14.74368],[50.89864,14.76385],[50.89399,14.78888],[50.89047,14.81189],[50.87433,14.8185],[50.86099,14.82025],[50.85061,14.83471],[50.84264,14.85806],[50.82791,14.86698],[50.82213,14.88802],[50.82199,14.91169],[50.81634,14.9313],[50.81491,14.95628],[50.80772,14.97588],[50.7927,14.99122],[50.78716,15.01375],[50.78055,15.03443],[50.76728,15.0454],[50.75532,15.05338],[50.74782,15.07329],[50.73525,15.08425],[50.72433,15.10318],[50.71054,15.11644],[50.70943,15.13776],[50.7068,15.15732],[50.70855,15.18312],[50.70855,15.19056]];
+const DISTS = [0.0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.5,10.0,10.5,11.0,11.5,12.0,12.5,12.82,13.5,14.0,14.5,15.0,15.5,16.0,16.5,17.0,17.5,18.0,18.5,19.0,19.5,20.0,20.5,21.0,21.5,22.0,22.5,23.0,23.5,24.0,24.5,25.0,25.5,26.0,26.5,27.0,27.5,28.0,28.5,29.0,29.5,30.0,30.5,31.0,31.5,32.0,32.5,33.0,33.5,34.0,34.5,35.0,35.5,36.0,36.5,37.0,37.5,38.0,38.5,39.0,39.5,40.0,40.5,41.0,41.5,42.0,42.5,43.0,43.5,44.0,44.5,45.0,45.5,46.0,46.5,47.0,47.5,48.0,48.5,49.0,49.5,50.0,50.5,51.0,51.5,52.0,52.5,53.0,53.5,54.0,54.5,55.0,55.5,56.0,56.5,57.0,57.5,58.0,58.5,59.0,59.5,60.0,60.5,61.0,61.5,62.0,62.5,63.0,63.5,64.0,64.5,65.0,65.5,66.0,66.5,67.0,67.5,68.0,68.5,69.0,69.5,70.0,70.5,71.0,71.5,72.0,72.5,73.0,73.5,74.0,74.5,75.0,75.5,76.0,76.5,76.57];
+const ELES = [461,462,470,492,499,486,503,534,541,559,569,575,557,558,555,555,590,590,570,612,624,620,623,643,648,650,670,577,536,495,439,410,397,400,394,385,373,362,381,400,398,371,342,318,301,292,287,281,280,268,250,249,246,242,240,240,240,240,242,241,238,237,239,240,240,240,241,249,245,246,248,245,256,250,250,259,255,256,260,260,260,265,265,266,269,278,270,274,284,285,280,280,280,283,285,290,292,297,302,323,345,350,360,354,322,330,328,337,341,357,340,336,337,339,340,341,346,349,350,350,354,356,357,359,363,370,375,375,376,412,428,427,454,482,503,497,523,546,580,587,562,537,530,527,542,576,599,625,625,612,607,603,610,617,615];
+const MAP_PTS = [[50.8831,14.51003],[50.88059,14.51192],[50.88079,14.51334],[50.87989,14.51518],[50.87885,14.51529],[50.87889,14.51615],[50.87753,14.52027],[50.87469,14.52068],[50.8714,14.52219],[50.86802,14.52699],[50.86469,14.5307],[50.86502,14.53409],[50.86223,14.53594],[50.8601,14.53673],[50.85873,14.53865],[50.85188,14.54521],[50.8525,14.54962],[50.85022,14.55399],[50.84892,14.55498],[50.84846,14.55761],[50.84815,14.56296],[50.84932,14.56643],[50.84895,14.57143],[50.84914,14.57326],[50.84802,14.57393],[50.84712,14.57371],[50.84682,14.5755],[50.8455,14.5764],[50.84407,14.57611],[50.84265,14.57474],[50.84325,14.57679],[50.8431,14.57918],[50.84247,14.5797],[50.84227,14.58144],[50.84224,14.58464],[50.84286,14.5879],[50.84282,14.5897],[50.83982,14.59341],[50.83967,14.59457],[50.84023,14.59709],[50.84151,14.59788],[50.84257,14.60122],[50.84396,14.60251],[50.84521,14.60333],[50.84988,14.60299],[50.85271,14.60632],[50.85583,14.60805],[50.85698,14.61037],[50.85801,14.61397],[50.85924,14.61548],[50.85936,14.61588],[50.85842,14.61713],[50.85955,14.62011],[50.86013,14.62026],[50.86152,14.62365],[50.86258,14.6277],[50.86199,14.63116],[50.86221,14.63645],[50.86195,14.63843],[50.86073,14.63915],[50.86065,14.64538],[50.8628,14.64734],[50.86411,14.64935],[50.86622,14.6498],[50.86792,14.64921],[50.86912,14.64966],[50.86947,14.65042],[50.86806,14.66015],[50.86864,14.6645],[50.8696,14.66775],[50.86984,14.67275],[50.86941,14.67494],[50.87045,14.67856],[50.8704,14.6814],[50.87098,14.68299],[50.87207,14.68408],[50.87311,14.6861],[50.87578,14.6969],[50.87665,14.71009],[50.87771,14.71365],[50.87775,14.71666],[50.87898,14.71847],[50.8817,14.72726],[50.88344,14.72986],[50.88426,14.73352],[50.88784,14.73756],[50.88873,14.7396],[50.88884,14.74096],[50.88961,14.74207],[50.88994,14.74368],[50.88933,14.744],[50.88934,14.7447],[50.89044,14.74899],[50.89226,14.75404],[50.8935,14.75643],[50.8966,14.75796],[50.89676,14.75832],[50.89607,14.76008],[50.89848,14.76236],[50.89867,14.76458],[50.89802,14.76646],[50.89789,14.76843],[50.89363,14.7724],[50.89327,14.77479],[50.89334,14.77866],[50.89364,14.77953],[50.89333,14.78279],[50.89517,14.78299],[50.89397,14.7895],[50.89517,14.79397],[50.89527,14.79612],[50.89508,14.79717],[50.89088,14.80579],[50.89181,14.80677],[50.89113,14.8096],[50.89175,14.81116],[50.88712,14.81436],[50.88368,14.8185],[50.88072,14.81718],[50.8793,14.81708],[50.87462,14.81873],[50.87116,14.82183],[50.86977,14.82239],[50.86639,14.82169],[50.86483,14.82006],[50.86299,14.81957],[50.86034,14.82039],[50.85877,14.81889],[50.85662,14.81963],[50.85418,14.82264],[50.85561,14.82578],[50.85519,14.82747],[50.85417,14.82935],[50.85371,14.83265],[50.85226,14.8367],[50.85267,14.84058],[50.85303,14.84184],[50.85347,14.84214],[50.85366,14.8439],[50.85108,14.84519],[50.84969,14.84891],[50.84915,14.85183],[50.84714,14.85432],[50.8469,14.85581],[50.84496,14.85863],[50.84328,14.85975],[50.84026,14.86501],[50.83809,14.86629],[50.83623,14.86876],[50.83434,14.86918],[50.83284,14.8712],[50.83082,14.86932],[50.82808,14.86874],[50.8276,14.8704],[50.82807,14.87299],[50.82767,14.87534],[50.82627,14.87749],[50.826,14.87858],[50.825,14.87916],[50.82398,14.88061],[50.82185,14.88178],[50.82141,14.8834],[50.82288,14.88591],[50.8216,14.88967],[50.82071,14.89397],[50.82288,14.89433],[50.82245,14.89568],[50.822,14.90099],[50.82168,14.90247],[50.8213,14.90232],[50.82048,14.9095],[50.82154,14.91809],[50.82127,14.91978],[50.8206,14.92105],[50.82135,14.92316],[50.82063,14.92447],[50.81932,14.92436],[50.81789,14.92599],[50.81707,14.92904],[50.81521,14.93209],[50.81446,14.93677],[50.81482,14.9386],[50.81609,14.94003],[50.81611,14.94734],[50.81495,14.95094],[50.81477,14.95462],[50.81579,14.95778],[50.81542,14.95984],[50.81571,14.96204],[50.81686,14.96425],[50.81693,14.96665],[50.81777,14.96918],[50.81403,14.97241],[50.81175,14.97319],[50.80877,14.97606],[50.80743,14.97593],[50.80694,14.97739],[50.80408,14.98014],[50.80243,14.981],[50.80124,14.98285],[50.79434,14.99079],[50.7899,14.9916],[50.78824,14.99658],[50.78811,14.99898],[50.78878,15.00117],[50.78901,15.0039],[50.78818,15.00525],[50.78802,15.01158],[50.78697,15.01464],[50.78468,15.0184],[50.78326,15.02214],[50.7822,15.02353],[50.78144,15.02834],[50.78179,15.02912],[50.78229,15.02911],[50.7825,15.02993],[50.78231,15.03051],[50.78261,15.03164],[50.78211,15.03353],[50.78122,15.0346],[50.77989,15.03447],[50.77883,15.0351],[50.77846,15.03588],[50.78008,15.04453],[50.77962,15.04783],[50.77846,15.05056],[50.77772,15.05092],[50.77691,15.05037],[50.77517,15.04696],[50.7722,15.04263],[50.77188,15.04317],[50.77038,15.04268],[50.76656,15.04575],[50.76666,15.04683],[50.76829,15.05084],[50.76815,15.05276],[50.76721,15.05509],[50.7662,15.05424],[50.76565,15.05251],[50.76199,15.05256],[50.76087,15.0541],[50.75901,15.0591],[50.75823,15.05989],[50.75768,15.05954],[50.75548,15.05524],[50.75377,15.05529],[50.75115,15.05682],[50.74821,15.063],[50.74845,15.06923],[50.74757,15.07423],[50.74659,15.07396],[50.74486,15.07589],[50.74347,15.07894],[50.74335,15.08033],[50.74211,15.08077],[50.73898,15.07914],[50.73788,15.08194],[50.73527,15.0842],[50.73267,15.08954],[50.7325,15.09399],[50.73115,15.09713],[50.72958,15.09717],[50.72683,15.10054],[50.72505,15.10148],[50.72441,15.10308],[50.72267,15.10554],[50.7218,15.10801],[50.72125,15.10775],[50.72013,15.11082],[50.71687,15.11379],[50.71648,15.11388],[50.71555,15.11285],[50.71449,15.11026],[50.71194,15.11179],[50.71048,15.11076],[50.70985,15.11737],[50.70861,15.11969],[50.70838,15.12221],[50.70673,15.12574],[50.70511,15.12752],[50.70584,15.12862],[50.7065,15.13107],[50.70744,15.13244],[50.70778,15.13512],[50.7093,15.1369],[50.70941,15.13798],[50.70852,15.1416],[50.71034,15.14365],[50.7107,15.14459],[50.70781,15.1446],[50.70605,15.1463],[50.70602,15.15691],[50.70702,15.15757],[50.70848,15.16327],[50.70839,15.16801],[50.70911,15.1746],[50.70793,15.17562],[50.70793,15.17695],[50.70734,15.17718],[50.7072,15.17826],[50.70561,15.17918],[50.70547,15.18158],[50.7089,15.18778],[50.70945,15.19039],[50.70857,15.19056]];
+const CLIMBS = [{"n":1,"km":0.9,"dist":4.32,"gain":109,"avg":2.5,"mx":9.0,"top":574,"topkm":5.2,"fiets":2.7,"cat":"Kat. 4","min":31,"vam":208,"line":[[50.87877,14.51645],[50.87835,14.51738],[50.87796,14.51834],[50.87768,14.51938],[50.87739,14.52029],[50.87668,14.52039],[50.87596,14.52047],[50.87524,14.52056],[50.87453,14.52074],[50.87384,14.52102],[50.87315,14.52135],[50.87246,14.52167],[50.87176,14.52198],[50.87114,14.52251],[50.87059,14.52325],[50.87003,14.52397],[50.86948,14.5247],[50.86898,14.52552],[50.86848,14.52635],[50.86794,14.52708],[50.86734,14.52771],[50.86674,14.52834],[50.86619,14.52907],[50.86562,14.52973],[50.86501,14.53032],[50.86455,14.53114],[50.86468,14.53225],[50.86488,14.53334],[50.86481,14.53423],[50.86415,14.53467],[50.86349,14.53513],[50.86283,14.53557],[50.86216,14.53598],[50.86147,14.5363],[50.86076,14.5365],[50.86006,14.53676],[50.8595,14.53747],[50.85903,14.53832],[50.85843,14.53895],[50.85782,14.53956],[50.85722,14.54018],[50.85661,14.54079],[50.856,14.54141],[50.8554,14.54202],[50.85479,14.54264],[50.85418,14.54323],[50.85356,14.54381],[50.85293,14.54435],[50.85229,14.54488],[50.85192,14.54562],[50.85203,14.54674],[50.85213,14.54787],[50.85242,14.5489],[50.85236,14.5499],[50.85187,14.55075]],"prof":[[0.0,465,3.1],[0.06,467,4.5],[0.12,469,5.6],[0.18,472,6.9],[0.24,476,6.6],[0.3,481,4.3],[0.36,484,2.8],[0.42,485,2.8],[0.48,487,3.2],[0.54,489,3.4],[0.6,491,3.5],[0.66,493,3.9],[0.72,495,3.7],[0.78,498,2.2],[0.84,499,0.6],[0.9,500,0.0],[0.96,500,-0.0],[1.02,500,-0.6],[1.08,500,-1.8],[1.14,499,-2.9],[1.2,497,-3.4],[1.26,495,-3.6],[1.32,493,-3.3],[1.38,491,-2.6],[1.44,489,-2.0],[1.5,488,-1.9],[1.56,487,-1.8],[1.62,486,-0.9],[1.68,485,-0.2],[1.74,485,0.7],[1.8,485,3.5],[1.86,486,6.9],[1.92,490,7.5],[1.98,495,5.9],[2.04,499,4.5],[2.1,502,4.1],[2.16,504,5.7],[2.22,507,8.0],[2.28,511,9.0],[2.34,517,8.9],[2.4,522,7.7],[2.46,527,5.0],[2.52,531,3.0],[2.58,533,2.1],[2.64,534,1.0],[2.7,535,0.1],[2.76,535,0.1],[2.82,535,0.8],[2.88,535,1.6],[2.94,536,2.3],[3.0,537,2.8],[3.06,539,3.1],[3.12,541,3.1],[3.18,543,3.1],[3.24,544,3.1],[3.3,546,3.1],[3.36,548,3.1],[3.42,550,3.4],[3.48,552,4.1],[3.54,554,4.7],[3.6,557,4.8],[3.66,560,4.1],[3.72,563,2.3],[3.78,564,0.6],[3.84,565,0.0],[3.9,565,0.1],[3.96,565,1.0],[4.02,565,2.9],[4.08,567,4.0],[4.14,569,3.5],[4.2,571,2.7],[4.26,573,2.1],[4.32,574,0.0]],"loc":"Jedlová"},{"n":2,"km":7.4,"dist":0.48,"gain":39,"avg":8.2,"mx":13.3,"top":590,"topkm":7.9,"fiets":3.2,"cat":"Kat. 4","min":6,"vam":375,"line":[[50.84641,14.57592],[50.84575,14.57632],[50.84508,14.5762],[50.84436,14.57619],[50.84369,14.57581],[50.84308,14.57523],[50.84273,14.57502]],"prof":[[0.0,550,4.9],[0.06,553,8.5],[0.12,557,11.3],[0.18,563,13.2],[0.24,571,12.2],[0.3,579,8.4],[0.36,585,4.3],[0.42,588,2.3],[0.48,590,0.0]],"loc":"Lesné"},{"n":3,"km":9.0,"dist":0.8,"gain":56,"avg":7.0,"mx":13.8,"top":625,"topkm":9.8,"fiets":3.9,"cat":"Kat. 4","min":10,"vam":347,"line":[[50.84252,14.59026],[50.84189,14.59073],[50.84132,14.59144],[50.84075,14.59214],[50.84021,14.59288],[50.83973,14.59371],[50.8397,14.59483],[50.84004,14.59582],[50.84019,14.59688],[50.84067,14.59765],[50.84137,14.59782]],"prof":[[0.0,570,7.6],[0.06,573,12.3],[0.12,580,13.4],[0.18,588,13.6],[0.24,596,13.3],[0.3,604,8.5],[0.36,611,1.1],[0.42,613,-2.3],[0.48,611,-0.8],[0.54,610,3.5],[0.6,611,8.2],[0.66,615,8.8],[0.72,621,5.1],[0.78,625,2.7]],"loc":"Stožec"},{"n":4,"km":10.9,"dist":1.92,"gain":48,"avg":2.5,"mx":8.9,"top":669,"topkm":12.8,"fiets":1.2,"cat":"Neklas.","min":14,"vam":208,"line":[[50.84936,14.60296],[50.85006,14.60311],[50.85062,14.60383],[50.85115,14.60459],[50.85173,14.60526],[50.85233,14.6059],[50.85295,14.60647],[50.85365,14.60667],[50.85435,14.60696],[50.85498,14.60751],[50.85565,14.60791],[50.85616,14.60866],[50.85654,14.60961],[50.85701,14.61047],[50.85729,14.61152],[50.85759,14.61256],[50.85789,14.61359],[50.85834,14.61444],[50.85896,14.61501],[50.85934,14.61592],[50.85879,14.61664],[50.85854,14.61744],[50.85895,14.61838],[50.85938,14.6193],[50.85972,14.62011]],"prof":[[0.0,621,2.9],[0.06,622,3.7],[0.12,624,4.1],[0.18,627,4.3],[0.24,629,4.4],[0.3,632,4.3],[0.36,635,3.9],[0.42,637,3.9],[0.48,639,4.2],[0.54,642,4.0],[0.6,644,3.7],[0.66,646,2.9],[0.72,648,1.5],[0.78,650,0.2],[0.84,650,-0.1],[0.9,650,-0.7],[0.96,650,-1.4],[1.02,649,-1.6],[1.08,648,-1.7],[1.14,647,-1.7],[1.2,646,-0.9],[1.26,645,-0.2],[1.32,645,0.0],[1.38,645,0.0],[1.44,645,1.9],[1.5,645,6.6],[1.56,648,8.9],[1.62,654,6.7],[1.68,659,4.4],[1.74,661,4.6],[1.8,664,4.8],[1.86,667,3.4],[1.92,669,0.0]],"loc":"Pěnkavčí vrch"},{"n":5,"km":18.6,"dist":0.82,"gain":38,"avg":4.6,"mx":7.7,"top":399,"topkm":19.4,"fiets":1.7,"cat":"Neklas.","min":8,"vam":281,"line":[[50.87233,14.6845],[50.87279,14.68537],[50.87318,14.68632],[50.87346,14.68737],[50.87368,14.68846],[50.8739,14.68955],[50.87414,14.69062],[50.87436,14.6917],[50.87458,14.69279],[50.87481,14.69387],[50.87512,14.69489]],"prof":[[0.0,361,3.1],[0.06,363,3.4],[0.12,365,3.5],[0.18,367,4.9],[0.24,369,7.0],[0.3,373,7.6],[0.36,378,6.4],[0.42,382,5.2],[0.48,385,4.7],[0.54,388,4.6],[0.6,391,4.4],[0.66,394,3.7],[0.72,396,2.6],[0.78,398,2.1]],"loc":"Jonsdorf (DE)"},{"n":6,"km":49.0,"dist":1.9,"gain":58,"avg":3.0,"mx":5.3,"top":358,"topkm":50.9,"fiets":1.8,"cat":"Neklas.","min":15,"vam":228,"line":[[50.81419,14.97227],[50.81352,14.97263],[50.81281,14.97281],[50.8121,14.97301],[50.81145,14.97348],[50.81086,14.97412],[50.81026,14.97475],[50.80965,14.97537],[50.80902,14.97589],[50.80833,14.97614],[50.80763,14.97588],[50.80724,14.97667],[50.8068,14.97753],[50.80615,14.97801],[50.80551,14.97852],[50.8049,14.97913],[50.80435,14.97986],[50.80371,14.98034],[50.80302,14.98066],[50.80235,14.98108],[50.80184,14.98188],[50.80135,14.9827],[50.80075,14.98334],[50.80014,14.98394]],"prof":[[0.0,301,3.2],[0.06,302,3.8],[0.12,305,3.6],[0.18,307,3.7],[0.24,309,4.1],[0.3,311,4.6],[0.36,314,4.8],[0.42,317,4.7],[0.48,320,4.7],[0.54,323,5.0],[0.6,325,5.2],[0.66,329,5.1],[0.72,332,5.0],[0.78,335,5.1],[0.84,338,4.8],[0.9,341,3.6],[0.96,343,1.8],[1.02,345,0.4],[1.08,345,0.0],[1.14,345,0.0],[1.2,345,0.0],[1.26,345,0.1],[1.32,345,0.9],[1.38,345,2.3],[1.44,346,3.2],[1.5,348,3.4],[1.56,350,3.6],[1.62,352,3.0],[1.68,355,2.0],[1.74,356,1.6],[1.8,357,1.7],[1.86,358,1.6]],"loc":"Chrastava"},{"n":7,"km":64.0,"dist":5.26,"gain":218,"avg":4.1,"mx":10.1,"top":594,"topkm":69.2,"fiets":9.0,"cat":"Kat. 3","min":49,"vam":267,"line":[[50.74353,15.07922],[50.74343,15.08024],[50.74276,15.08066],[50.74205,15.08075],[50.74136,15.08043],[50.74068,15.08006],[50.74,15.0797],[50.73932,15.07933],[50.73879,15.07961],[50.73836,15.08052],[50.73796,15.08147],[50.73754,15.0823],[50.73697,15.08298],[50.73627,15.08316],[50.73568,15.08378],[50.73511,15.08446],[50.73462,15.08527],[50.73423,15.08622],[50.73382,15.08707],[50.73347,15.08791],[50.73299,15.08876],[50.73262,15.08972],[50.73257,15.09084],[50.73257,15.09198],[50.73258,15.09312],[50.73242,15.09421],[50.73197,15.09509],[50.7316,15.09606],[50.73122,15.09702],[50.73054,15.09718],[50.72987,15.09725],[50.72928,15.09762],[50.7287,15.09827],[50.72812,15.09892],[50.72757,15.09967],[50.727,15.10035],[50.72633,15.10065],[50.72564,15.10092],[50.72502,15.10151],[50.72456,15.10238],[50.72423,15.10334],[50.72373,15.10416],[50.72316,15.10481],[50.72264,15.1056],[50.7223,15.1066],[50.72197,15.1076],[50.72153,15.1077],[50.72107,15.10835],[50.72085,15.10943],[50.72037,15.11026],[50.71988,15.11105],[50.71923,15.11153],[50.71857,15.11199],[50.71795,15.11256],[50.71737,15.11324],[50.71677,15.11384],[50.71618,15.11341],[50.71556,15.11286],[50.71519,15.11188],[50.71486,15.11088],[50.71434,15.11024],[50.71363,15.11048],[50.71301,15.11105],[50.71237,15.11156],[50.71168,15.11176],[50.71101,15.11135]],"prof":[[0.0,375,3.1],[0.06,377,3.9],[0.12,379,4.5],[0.18,382,6.8],[0.24,385,9.4],[0.3,390,10.1],[0.36,397,9.8],[0.42,402,9.8],[0.48,408,8.8],[0.54,414,6.7],[0.6,418,4.8],[0.66,422,3.0],[0.72,424,1.6],[0.78,425,2.0],[0.84,426,2.5],[0.9,427,0.8],[0.96,428,-1.7],[1.02,428,-2.3],[1.08,426,-1.3],[1.14,425,-0.8],[1.2,425,-1.7],[1.26,424,-1.2],[1.32,423,1.1],[1.38,423,2.6],[1.44,425,2.8],[1.5,426,2.5],[1.56,428,3.6],[1.62,429,6.6],[1.68,433,7.9],[1.74,438,6.9],[1.8,442,5.6],[1.86,446,5.3],[1.92,449,5.5],[1.98,452,6.3],[2.04,456,7.4],[2.1,460,7.5],[2.16,464,5.0],[2.22,468,2.1],[2.28,470,2.5],[2.34,471,5.2],[2.4,473,7.1],[2.46,477,7.2],[2.52,482,6.2],[2.58,486,6.0],[2.64,489,6.7],[2.7,493,5.9],[2.76,497,3.6],[2.82,500,1.7],[2.88,501,1.2],[2.94,502,1.2],[3.0,502,1.3],[3.06,503,0.3],[3.12,504,-4.3],[3.18,503,-8.4],[3.24,498,-5.7],[3.3,493,-0.0],[3.36,492,2.4],[3.42,493,3.5],[3.48,495,5.2],[3.54,498,5.8],[3.6,501,5.4],[3.66,505,5.5],[3.72,508,6.0],[3.78,512,6.1],[3.84,515,5.2],[3.9,519,4.0],[3.96,521,3.4],[4.02,523,3.3],[4.08,525,3.3],[4.14,527,4.0],[4.2,529,5.0],[4.26,532,5.4],[4.32,535,5.4],[4.38,539,5.3],[4.44,542,5.9],[4.5,545,6.8],[4.56,549,6.7],[4.62,553,6.2],[4.68,557,5.7],[4.74,561,5.4],[4.8,564,6.3],[4.86,567,7.7],[4.92,572,8.1],[4.98,577,7.8],[5.04,581,7.4],[5.1,586,6.0],[5.16,590,3.7],[5.22,593,2.2]],"loc":"Rádlo"},{"n":8,"km":71.6,"dist":1.86,"gain":99,"avg":5.3,"mx":10.1,"top":625,"topkm":73.5,"fiets":5.3,"cat":"Kat. 4","min":20,"vam":303,"line":[[50.70941,15.13797],[50.7092,15.13905],[50.70894,15.14011],[50.70858,15.14106],[50.70878,15.14195],[50.70938,15.14258],[50.70991,15.14334],[50.71042,15.14398],[50.71046,15.14462],[50.70974,15.14461],[50.70902,15.14458],[50.7083,15.1446],[50.70761,15.14476],[50.707,15.14535],[50.7064,15.14598],[50.70604,15.1468],[50.70603,15.14794],[50.70603,15.14907],[50.70604,15.15021],[50.70601,15.15135],[50.706,15.15248],[50.706,15.15362],[50.70599,15.15475],[50.70599,15.15589]],"prof":[[0.0,525,3.0],[0.06,527,4.5],[0.12,529,5.3],[0.18,532,5.9],[0.24,536,5.6],[0.3,539,4.8],[0.36,542,5.3],[0.42,545,6.5],[0.48,549,6.6],[0.54,553,4.0],[0.6,556,4.4],[0.66,558,8.5],[0.72,562,10.1],[0.78,569,8.9],[0.84,574,8.2],[0.9,579,5.3],[0.96,583,1.7],[1.02,585,0.2],[1.08,585,0.9],[1.14,585,3.4],[1.2,587,6.6],[1.26,590,8.7],[1.32,595,9.0],[1.38,601,7.7],[1.44,606,6.0],[1.5,609,4.9],[1.56,612,4.7],[1.62,615,4.7],[1.68,618,4.6],[1.74,621,3.6],[1.8,623,2.3],[1.86,625,0.0]],"loc":"Dobrá Voda"}];
 
 // ── MAP ───────────────────────────────────────────────────────────────────────
 const map = L.map('map', { scrollWheelZoom: true }).setView([50.80, 14.86], 10);
@@ -698,13 +754,13 @@ function mk(emoji, bg) {
 
 const pins = [
   {pos:[50.88303,14.50995], e:'🟢', km:'0', name:'Rybniště — START', ele:'461 m n.m.', bg:'#e8f5c0'},
-  {pos:[50.8566,14.5604],   e:'🗼', km:'~6', name:'Jedlová — rozhledna (poblíž)', ele:'~570 m · 840 m od trasy'},
-  {pos:[50.8938,14.8064],   e:'🇩🇪', km:'29', name:'Zittau — Německo', ele:'235 m n.m. · přechod DE'},
-  {pos:[50.8673,14.8195],   e:'🌍', km:'33', name:'Trojmezí CZ / PL / DE', ele:'237 m · unikátní bod!', bg:'#fff3d0'},
-  {pos:[50.8498,14.8439],   e:'🏘', km:'37', name:'Hrádek nad Nisou', ele:'246 m n.m. · občerstvení'},
-  {pos:[50.8192,14.9669],   e:'🏙', km:'49', name:'Chrastava', ele:'294 m n.m.'},
-  {pos:[50.7706,15.0583],   e:'🏙', km:'58', name:'Liberec', ele:'351 m n.m. · servis'},
-  {pos:[50.7052,15.1863],   e:'🏁', km:'74,9', name:'Kokonín — CÍL', ele:'624 m n.m.', bg:'#ffe0e0'},
+  {pos:[50.8566,14.5604],   e:'🗼', km:'5,5', name:'Jedlová — rozhledna (poblíž)', ele:'~575 m · 840 m od trasy'},
+  {pos:[50.8938,14.8064],   e:'🇩🇪', km:'29,3', name:'Zittau — Německo', ele:'242 m n.m. · v DE od km 12,8'},
+  {pos:[50.8673,14.8195],   e:'🌍', km:'32,7', name:'Trojmezí CZ / PL / DE', ele:'240 m · unikátní bod!', bg:'#fff3d0'},
+  {pos:[50.8498,14.8439],   e:'🏘', km:'36,3', name:'Hrádek nad Nisou', ele:'250 m n.m. · občerstvení'},
+  {pos:[50.8192,14.9669],   e:'🏙', km:'48,4', name:'Chrastava', ele:'296 m n.m.'},
+  {pos:[50.7706,15.0583],   e:'🏙', km:'59,6', name:'Liberec', ele:'350 m n.m. · servis'},
+  {pos:[50.70857,15.19056], e:'🏁', km:'76,6', name:'Kokonín — CÍL', ele:'615 m n.m.', bg:'#ffe0e0'},
 ];
 
 pins.forEach(p => {
@@ -732,10 +788,10 @@ function draw() {
 
   // Zone backgrounds
   const zones = [
-    {f:0,  t:29,   c:'rgba(74,122,0,0.05)'},
-    {f:29, t:33.2, c:'rgba(255,140,0,0.09)'},
-    {f:33.2,t:33.6,c:'rgba(26,127,168,0.15)'},
-    {f:33.6,t:75,  c:'rgba(26,127,168,0.04)'},
+    {f:0,    t:12.8, c:'rgba(74,122,0,0.05)'},
+    {f:12.8, t:32.7, c:'rgba(255,140,0,0.09)'},
+    {f:32.7, t:33.7, c:'rgba(26,127,168,0.15)'},
+    {f:33.7, t:76.57,c:'rgba(26,127,168,0.04)'},
   ];
   zones.forEach(z => {
     ctx.fillStyle=z.c;
@@ -744,12 +800,12 @@ function draw() {
 
   // Zone labels
   ctx.font='8px DM Mono, monospace'; ctx.textAlign='center'; ctx.fillStyle='#2a3a48';
-  [[14,'🇨🇿 Lužické hory'],[31,'🇩🇪'],[33.4,'🌍'],[55,'🇨🇿 Jizerské podhůří']].forEach(([d,l])=>{
+  [[6,'🇨🇿 Lužické hory'],[22,'🇩🇪 20,9 km'],[33.2,'🌍'],[55,'🇨🇿 Jizerské podhůří']].forEach(([d,l])=>{
     ctx.fillText(l, xP(d), PT-6);
   });
 
   // Vertical separators
-  [[29,'rgba(255,165,50,0.5)'],[33.2,'rgba(80,200,255,0.5)']].forEach(([d,c])=>{
+  [[12.8,'rgba(255,165,50,0.5)'],[33.7,'rgba(80,200,255,0.5)']].forEach(([d,c])=>{
     ctx.beginPath(); ctx.moveTo(xP(d),PT); ctx.lineTo(xP(d),H-PB);
     ctx.strokeStyle=c; ctx.lineWidth=1; ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
   });
@@ -765,11 +821,14 @@ function draw() {
 
   // X axis
   ctx.fillStyle='#7a8799'; ctx.font='9px DM Mono, monospace'; ctx.textAlign='center';
-  [0,10,20,29,33,40,50,60,70,75].forEach(d=>{
+  [0,10,20,30,40,50,60,70,76.6].forEach((d,i,arr)=>{
     const x=xP(d);
-    ctx.fillText(d, x, H-10);
+    // Krajní popisky se u okraje plátna ořezávaly — zarovnáme je dovnitř.
+    ctx.textAlign = i===0 ? 'left' : (i===arr.length-1 ? 'right' : 'center');
+    ctx.fillText(String(d).replace('.',','), x, H-10);
     ctx.strokeStyle='#d4d9e2'; ctx.beginPath(); ctx.moveTo(x,H-PB); ctx.lineTo(x,H-PB+3); ctx.stroke();
   });
+  ctx.textAlign='center';
 
   // Fill gradient
   const grad=ctx.createLinearGradient(0,PT,0,PT+CH);
@@ -792,7 +851,7 @@ function draw() {
   ctx.strokeStyle='#4a7a00'; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
 
   // Key dots
-  [{d:0,e:461},{d:25,e:655},{d:29,e:235},{d:33.2,e:237},{d:58,e:351},{d:74.9,e:624}].forEach(m=>{
+  [{d:0,e:461},{d:12.9,e:670},{d:29.3,e:242},{d:32.7,e:240},{d:59.6,e:350},{d:76.6,e:615}].forEach(m=>{
     let ni=0,md=Infinity;
     DISTS.forEach((d,i)=>{ const df=Math.abs(d-m.d); if(df<md){md=df;ni=i;} });
     const x=xP(DISTS[ni]),y=yP(ELES[ni]);
@@ -830,6 +889,192 @@ canvas.addEventListener('mousemove', e => {
   ctx2.fillStyle='#4a7a00'; ctx2.fill();
 });
 canvas.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; draw(); });
+
+// ── STOUPÁNÍ ──────────────────────────────────────────────────────────────────
+// Kategorie i Fiets index počítáme stejně jako MapyClimbs: Fiets = H² / D
+// (H převýšení v metrech, D délka v metrech). Ověřeno proti jejich výstupu —
+// všech 8 stoupání téhle trasy sedí, včetně toho, že první se slučuje přes
+// sedlo, ale dvě strmé rampy na km 7,4 a 9,0 zůstávají oddělené.
+const GRADE_BANDS = [
+  { max: 3,   c: '#4a9d3f', l: '< 3 %'   },
+  { max: 6,   c: '#e8c22e', l: '3–6 %'   },
+  { max: 9,   c: '#e88b2e', l: '6–9 %'   },
+  { max: 12,  c: '#d64522', l: '9–12 %'  },
+  { max: 15,  c: '#8f1f14', l: '12–15 %' },
+  { max: 999, c: '#3d0f0a', l: '≥ 15 %'  },
+];
+const bandColor = g => (GRADE_BANDS.find(b => g < b.max) || GRADE_BANDS[5]).c;
+const catClass  = c => c === 'Kat. 3' ? 'k3' : (c.indexOf('Kat.') === 0 ? 'k4' : 'nk');
+const cz        = n => String(n).replace('.', ',');
+const d1        = n => n.toFixed(1).replace('.', ',');
+const d2        = n => n.toFixed(2).replace('.', ',');
+
+// Mini profil: plocha obarvená po úsecích podle sklonu, ať je vidět, kde
+// v kopci je ta těžká část — průměrný sklon sám o sobě schová rampu.
+function drawClimbProfile(cv, climb) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  if (!W) return;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const pr = climb.prof;
+  const maxD = pr[pr.length - 1][0] || 1;
+  const els = pr.map(p => p[1]);
+  let lo = Math.min(...els), hi = Math.max(...els);
+  if (hi - lo < 20) { const m = (hi + lo) / 2; lo = m - 10; hi = m + 10; }
+  const PB = 13;
+  const x = d => (d / maxD) * W;
+  const y = e => (H - PB) - ((e - lo) / (hi - lo)) * (H - PB - 4);
+
+  for (let i = 0; i < pr.length - 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x(pr[i][0]),     H - PB);
+    ctx.lineTo(x(pr[i][0]),     y(pr[i][1]));
+    ctx.lineTo(x(pr[i + 1][0]), y(pr[i + 1][1]));
+    ctx.lineTo(x(pr[i + 1][0]), H - PB);
+    ctx.closePath();
+    ctx.fillStyle = bandColor(pr[i][2]);
+    ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  pr.forEach((p, i) => i ? ctx.lineTo(x(p[0]), y(p[1])) : ctx.moveTo(x(p[0]), y(p[1])));
+  ctx.stroke();
+
+  ctx.fillStyle = '#7a8799'; ctx.font = '9px "DM Mono", monospace';
+  ctx.fillText('0', 0, H - 3);
+  const rt = cz(maxD.toFixed(1)) + ' km';
+  ctx.fillText(rt, W - ctx.measureText(rt).width, H - 3);
+  ctx.textAlign = 'right';
+  ctx.fillText(Math.round(hi) + ' m', W - 2, 10);
+  ctx.textAlign = 'left';
+}
+
+// Zrcadlení na mapu — úsek stoupání se obtáhne barvou podle průměrného sklonu.
+const climbLayers = CLIMBS.map(c =>
+  L.polyline(c.line, { color: bandColor(c.avg), weight: 6, opacity: 0.85 })
+);
+climbLayers.forEach(l => l.addTo(map));
+
+let activeClimb = null;
+function selectClimb(i, fromMap) {
+  const same = activeClimb === i && !fromMap;
+  document.querySelectorAll('.climb-card').forEach((el, k) =>
+    el.classList.toggle('active', !same && k === i));
+  climbLayers.forEach((l, k) =>
+    l.setStyle({ weight: (!same && k === i) ? 9 : 6, opacity: (same || k === i) ? 0.9 : 0.4 }));
+  if (same) {
+    activeClimb = null;
+    climbLayers.forEach(l => l.setStyle({ weight: 6, opacity: 0.85 }));
+    map.fitBounds(poly.getBounds(), { padding: [28, 28] });
+  } else {
+    activeClimb = i;
+    if (!fromMap) map.fitBounds(climbLayers[i].getBounds(), { padding: [50, 50] });
+  }
+}
+
+(function renderClimbs() {
+  const totGain = CLIMBS.reduce((a, c) => a + c.gain, 0);
+  const totKm   = CLIMBS.reduce((a, c) => a + c.dist, 0);
+  const hardest = CLIMBS.reduce((a, c) => c.fiets > a.fiets ? c : a);
+
+  document.getElementById('climb-summary').innerHTML =
+    `<div class="cs-cell"><div class="cs-val">${CLIMBS.length}</div><div class="cs-lbl">Stoupání</div></div>` +
+    `<div class="cs-val-wrap cs-cell"><div class="cs-val">${totGain}<span class="u">m</span></div><div class="cs-lbl">Ve stoupáních</div></div>` +
+    `<div class="cs-cell"><div class="cs-val">${d1(totKm)}<span class="u">km</span></div><div class="cs-lbl">Délka stoupání</div></div>` +
+    `<div class="cs-cell"><div class="cs-val">${d1(hardest.fiets)}</div><div class="cs-lbl">Nejtěžší · Fiets</div></div>`;
+
+  document.getElementById('climb-grid').innerHTML = CLIMBS.map(c => `
+    <div class="climb-card" id="climb-${c.n}" data-i="${c.n - 1}">
+      <div class="cc-head">
+        <div><span class="cc-name">Stoupání ${c.n}</span><span class="cc-loc">${c.loc}</span></div>
+        <span class="cc-cat ${catClass(c.cat)}">${c.cat}</span>
+      </div>
+      <div class="cc-body">
+        <div class="cc-map" id="ccmap-${c.n}"></div>
+        <div class="cc-side">
+          <div class="cc-where">km ${d1(c.km)} – ${d1(c.topkm)}</div>
+          <div class="cc-nums">
+            <div><div class="cc-num-v gain">+${c.gain}<span class="u">m</span></div><div class="cc-num-l">Převýšení</div></div>
+            <div><div class="cc-num-v">${d2(c.dist)}<span class="u">km</span></div><div class="cc-num-l">Délka</div></div>
+            <div><div class="cc-num-v">${d1(c.avg)}<span class="u">%</span></div><div class="cc-num-l">Průměr</div></div>
+            <div><div class="cc-num-v">${d1(c.mx)}<span class="u">%</span></div><div class="cc-num-l">Max sklon</div></div>
+          </div>
+          <canvas class="cc-prof"></canvas>
+          <div class="cc-foot">
+            vrchol <b>${c.top} m</b> · Fiets <b>${d1(c.fiets)}</b> · odhad <b>${c.min} min</b> · VAM <b>${c.vam} m/h</b>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('grade-legend').innerHTML =
+    GRADE_BANDS.map(b => `<span><i style="background:${b.c}"></i>${b.l}</span>`).join('');
+
+  document.getElementById('climb-note').innerHTML =
+    `<b>Jak to číst:</b> barva v profilu i na mapě je sklon daného úseku, ne celého kopce — ` +
+    `průměr sám o sobě schová krátkou rampu. <b>Fiets index</b> (H²/D) váží převýšení proti délce: ` +
+    `pod 2 je kopec neklasifikovaný, kolem 9 už je to Kat. 3. <b>VAM</b> je nastoupaných metrů za hodinu ` +
+    `při odhadované rychlosti. Nejtěžší je <b>Stoupání ${hardest.n}</b> — ${d2(hardest.dist)} km, ` +
+    `+${hardest.gain} m, průměr ${d1(hardest.avg)} %.`;
+
+  const cards = [...document.querySelectorAll('.climb-card')];
+  cards.forEach((el, i) => {
+    drawClimbProfile(el.querySelector('.cc-prof'), CLIMBS[i]);
+    el.addEventListener('click', () => selectClimb(i));
+  });
+
+  // Mini mapa se staví, až když na ni uživatel dojede — osm mapy naráz
+  // znamená osm sad dlaždic hned při načtení stránky.
+  const built = new Set();
+  function buildMiniMap(i) {
+    if (built.has(i)) return;
+    built.add(i);
+    const c = CLIMBS[i];
+    const m = L.map('ccmap-' + c.n, {
+      scrollWheelZoom: false, dragging: false, zoomControl: false,
+      attributionControl: false, doubleClickZoom: false, boxZoom: false, keyboard: false
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 17 }).addTo(m);
+    const ln = L.polyline(c.line, { color: bandColor(c.avg), weight: 5, opacity: 0.95 }).addTo(m);
+    L.circleMarker(c.line[0], { radius: 5, color: '#fff', weight: 2, fillColor: '#4a7a00', fillOpacity: 1 })
+      .bindTooltip('start · km ' + d1(c.km)).addTo(m);
+    L.circleMarker(c.line[c.line.length - 1], { radius: 5, color: '#fff', weight: 2, fillColor: '#b83200', fillOpacity: 1 })
+      .bindTooltip('vrchol · ' + c.top + ' m').addTo(m);
+    m.fitBounds(ln.getBounds(), { padding: [18, 18] });
+  }
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => es.forEach(e => {
+      if (e.isIntersecting) { buildMiniMap(+e.target.dataset.i); io.unobserve(e.target); }
+    }), { rootMargin: '250px' });
+    cards.forEach(el => io.observe(el));
+  } else {
+    cards.forEach((el, i) => buildMiniMap(i));
+  }
+
+  // Očíslované piny na hlavní mapě → skok do detailu daného stoupání
+  CLIMBS.forEach((c, i) => {
+    L.marker(c.line[0], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div class="climb-pin ${c.cat.indexOf('Kat.') === 0 ? '' : 'nk'}">${c.n}</div>`,
+        iconSize: [24, 24], iconAnchor: [12, 12]
+      }),
+      zIndexOffset: 500
+    }).addTo(map)
+      .bindTooltip(`Stoupání ${c.n} — ${c.loc}<br>+${c.gain} m · ${d1(c.avg)} %`)
+      .on('click', () => {
+        selectClimb(i, true);
+        document.getElementById('climb-' + c.n).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+  });
+  window.addEventListener('resize', () => cards.forEach((el, i) =>
+    drawClimbProfile(el.querySelector('.cc-prof'), CLIMBS[i])));
+})();
+
 </script>
 </body>
 </html>
