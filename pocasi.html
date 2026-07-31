@@ -104,10 +104,24 @@
   .delta .dod { font-style: normal; font-size: 8.5px; letter-spacing: 0.1em; opacity: 0.6; padding-right: 1px; }
   .stat-card .delta { margin-top: 9px; }
   .fc-delta { margin: 3px 0 7px; }
-  .delta-legend { font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.75; color: var(--muted); letter-spacing: 0.03em; margin: 13px 0 16px; }
-  .delta-legend:empty { display: none; }
-  .delta-legend b { color: var(--text); font-weight: 500; }
-  .dod-chip { display: inline-block; background: var(--text); color: #fff; font-size: 9px; letter-spacing: 0.14em; padding: 2px 6px; border-radius: 3px; margin-right: 4px; vertical-align: 1px; }
+  .dod-chip { display: inline-block; background: var(--text); color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.14em; padding: 2px 6px; border-radius: 3px; margin-right: 4px; vertical-align: 1px; }
+
+  /* ── DETAIL NA KARTĚ ── */
+  /* Třetí úroveň (jistota, rozptyl, UV, vítr) je sbalená: na kartě bylo
+     dvanáct údajů stejnou vahou a oko nemělo kde zastavit. */
+  .fc-detail-toggle { display: block; width: 100%; margin-top: 13px; padding: 9px 0 0; border: none; border-top: 1px solid var(--border); background: none; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); cursor: pointer; text-align: left; transition: color 0.12s; }
+  .fc-detail-toggle:hover { color: var(--accent); }
+  .fc-card .fc-meta { display: none; margin-top: 11px; padding-top: 0; border-top: none; }
+  .fc-card.open .fc-meta { display: block; }
+
+  /* ── LEGENDA METRIK ── */
+  .card-legend { background: var(--surface); border-left: 3px solid var(--accent); box-shadow: var(--shadow); padding: 19px 24px; margin: 3px 0 3px; }
+  .card-legend:empty { display: none; }
+  .card-legend h4 { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text); font-weight: 500; margin-bottom: 13px; }
+  .legend-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 28px; }
+  .legend-item { font-size: 12px; line-height: 1.55; color: var(--muted); }
+  .legend-item b { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text); font-weight: 500; letter-spacing: 0.03em; }
+  .legend-dod { grid-column: 1 / -1; margin-top: 5px; padding-top: 11px; border-top: 1px solid var(--border); }
 
   /* ── CHARTS ── */
   .chart-wrap { background: var(--surface); padding: 24px 20px 20px; box-shadow: var(--shadow); }
@@ -187,6 +201,8 @@
 
   /* ── RESPONSIVE ── */
   @media (max-width: 600px) {
+    .legend-grid { grid-template-columns: 1fr; }
+    .card-legend { padding: 16px 16px; }
     .container { padding: 0 16px 40px; }
     header { margin: 0 -16px 40px; padding: 28px 16px 28px; }
     h1 { font-size: clamp(50px, 15vw, 76px); }
@@ -231,7 +247,7 @@
       <span class="section-hint" id="hint-days"></span>
     </div>
     <div class="forecast-grid" id="forecast-cards"></div>
-    <div class="delta-legend" id="delta-legend"></div>
+    <div class="card-legend" id="card-legend"></div>
     <div class="stats-grid-4" id="summary-stats"></div>
 
     <!-- 1b. Pravděpodobnost jevů -->
@@ -661,8 +677,9 @@ function processData(rows) {
   document.getElementById('hint-days').textContent = hint;
   document.getElementById('hint-rows').textContent = data.length + ' záznamů';
 
-  renderDeltaLegend();
+  renderCardLegend();
   renderCards(latestRows);
+  initDetailToggles();
   renderSummary(latestRows);
   // karty vznikly teď — dolož do nich vše, co už dorazilo z API
   patchCardsWithExtras();
@@ -834,17 +851,67 @@ function deltaBadge(now, prev, kindName, small) {
          '</span>';
 }
 
-function renderDeltaLegend() {
-  var el = document.getElementById('delta-legend');
+// Stejná změna jako v badgeu, ale jen do title — u P(déšť) a jistoty by třetí
+// a čtvrtá šipka na kartě přestala být signálem a stala se texturou.
+function deltaTitle(now, prev, kindName, label) {
+  var k = DELTA_KINDS[kindName];
+  var b = prevBase();
+  if (!k || !b || now == null || prev == null || isNaN(now) || isNaN(prev)) return '';
+  var d = now - prev;
+  var u = k.unit.replace('pb', '%');
+  var sign = Math.abs(d).toFixed(k.dec) === (0).toFixed(k.dec) ? '' : (d > 0 ? '+' : '−');
+  return label + ' · Day over Day ' + sign + Math.abs(d).toFixed(k.dec) + ' ' + k.unit +
+         '  (' + b.short + ' ' + prev.toFixed(k.dec) + ' ' + u +
+         '  →  nyní ' + now.toFixed(k.dec) + ' ' + u + ')';
+}
+
+function renderCardLegend() {
+  var el = document.getElementById('card-legend');
   if (!el) return;
   var b = prevBase();
-  if (!b) { el.innerHTML = ''; return; }
-  el.innerHTML =
-    '<span class="dod-chip">DoD</span> <b>Day over Day — změna oproti zápisu z ' + b.day + '.</b> ' +
-    'Šipka drží směr čísla, barva to, jestli je změna k lepšímu.<br>' +
-    'Víc srážek je proto ▲ červeně. Teplota se poměřuje s pásmem ' +
-    COMFORT_LO + '–' + COMFORT_HI + ' °C, uvnitř něj je změna neutrální. ' +
-    '≈ = pod prahem šumu.';
+
+  var items = [
+    ['Teplota', 'Denní maximum — medián ensemblu, tedy prostředek ze všech běhů modelu, ne jeden odhad.'],
+    ['Real Feel', 'Pocitová teplota (max / min). Započítá vítr a vlhkost, takže se od naměřené liší.'],
+    ['💧 mm · P', 'Medián srážek a podíl běhů, ve kterých ten den spadlo víc než 0,5 mm.'],
+    ['Jistota ens.', 'Jak moc se běhy modelu shodnou. Pod 40 % ber předpověď jako orientační.'],
+    ['p10–p90', 'Mezi těmito teplotami skončí 80 % běhů. Široký rozsah = velká nejistota.'],
+    ['RF (det.)', 'Real Feel z deterministického modelu — jeden běh navíc pro srovnání s ensemblem.'],
+    ['UV max', 'Nejvyšší UV index dne. Od 6 výš má smysl krém a pokrývka hlavy.'],
+    ['Vítr', 'Nejvyšší rychlost dne a směr, v závorce náraz.']
+  ];
+
+  var html = '<h4>Co která metrika znamená</h4><div class="legend-grid">' +
+    items.map(function(it) {
+      return '<div class="legend-item"><b>' + it[0] + '</b> — ' + it[1] + '</div>';
+    }).join('');
+
+  if (b) {
+    html += '<div class="legend-item legend-dod">' +
+      '<span class="dod-chip">DoD</span> <b>Day over Day</b> — změna oproti zápisu z ' + b.day + '. ' +
+      'Šipka drží směr čísla, barva to, jestli je změna k lepšímu: víc srážek je proto ▲ červeně. ' +
+      'Teplota se poměřuje s pásmem ' + COMFORT_LO + '–' + COMFORT_HI + ' °C, uvnitř něj je změna neutrální. ' +
+      '≈ = pod prahem šumu. U ostatních metrik je změna v tooltipu.' +
+      '</div>';
+  }
+
+  el.innerHTML = html + '</div>';
+}
+
+// Rozklik detailu je jen přepnutí třídy — obsah .fc-meta doplňují až
+// patch* funkce, jak dobíhají API, takže se o něj toggle nesmí starat.
+function initDetailToggles() {
+  var grid = document.getElementById('forecast-cards');
+  if (!grid || grid._toggleBound) return;
+  grid._toggleBound = true;
+  grid.addEventListener('click', function(e) {
+    var btn = e.target.closest('.fc-detail-toggle');
+    if (!btn) return;
+    var card = btn.closest('.fc-card');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    btn.textContent = open ? 'Skrýt detail ▴' : 'Detail ▾';
+  });
 }
 
 function renderCards(rows) {
@@ -880,12 +947,11 @@ function renderCards(rows) {
       '<div class="fc-temp">' + r.teplota.toFixed(1) + '<span class="unit">°C</span></div>' +
       '<div class="fc-delta">' + (pb ? deltaBadge(r.teplota, pb.teplota, 'temp') : '') + '</div>' +
       '<div class="fc-desc">' + r.popis + '</div>' +
-      (rainText ? '<div class="fc-rain">💧 ' + rainText +
-        (pb ? deltaBadge(r.srazky, pb.srazky, 'rain', true) : '') + '</div>' : '') +
+      (rainText ? '<div class="fc-rain" title="' + (pb ? deltaTitle(r.srazky, pb.srazky, 'rain', 'Srážky') : '') + '">💧 ' + rainText + '</div>' : '') +
+      '<button class="fc-detail-toggle" type="button">Detail ▾</button>' +
       '<div class="fc-meta">' +
         '<div class="sheet-rows">' +
-          '<div class="fc-meta-row"><span class="fc-meta-label">Spolehl.</span><span class="fc-meta-value ' + spolehCls + '">' + (r.spoleh != null ? r.spoleh + '%' : '—') +
-            (pb ? deltaBadge(r.spoleh, pb.spoleh, 'up', true) : '') + '</span></div>' +
+          '<div class="fc-meta-row" title="' + (pb ? deltaTitle(r.spoleh, pb.spoleh, 'up', 'Spolehlivost') : '') + '"><span class="fc-meta-label">Spolehl.</span><span class="fc-meta-value ' + spolehCls + '">' + (r.spoleh != null ? r.spoleh + '%' : '—') + '</span></div>' +
           (r.rozptyl != null ? '<div class="fc-meta-row"><span class="fc-meta-label">Rozptyl</span><span class="fc-meta-value">±' + r.rozptyl.toFixed(1) + '°C</span></div>' : '') +
         '</div>' +
       '</div>';
@@ -2255,13 +2321,14 @@ function patchCardsWithEnsemble() {
     if (iconEl) iconEl.textContent = icon;
     var rainEl = card.querySelector('.fc-rain');
     var mmMed = st.precip ? st.precip.med : null;
-    var rainTxt = '💧 ' + (mmMed != null ? mmMed.toFixed(1) + ' mm' : '—') + ' · P ' + pRain + ' %' +
-                  (pb ? deltaBadge(pRain, pb.ensPRain, 'down', true) : '');
-    if (rainEl) { rainEl.innerHTML = rainTxt; }
+    var rainTxt = '💧 ' + (mmMed != null ? mmMed.toFixed(1) + ' mm' : '—') + ' · P ' + pRain + ' %';
+    var rainTitle = pb ? deltaTitle(pRain, pb.ensPRain, 'down', 'P(déšť)') : '';
+    if (rainEl) { rainEl.textContent = rainTxt; rainEl.title = rainTitle; }
     else {
       var nr = document.createElement('div');
       nr.className = 'fc-rain';
-      nr.innerHTML = rainTxt;
+      nr.textContent = rainTxt;
+      nr.title = rainTitle;
       var d2 = card.querySelector('.fc-rf') || card.querySelector('.fc-desc');
       if (d2) d2.parentNode.insertBefore(nr, d2.nextSibling);
     }
@@ -2278,9 +2345,9 @@ function patchCardsWithEnsemble() {
       var rows = document.createElement('div');
       rows.className = 'ens-rows';
       rows.innerHTML =
-        '<div class="fc-meta-row"><span class="fc-meta-label">Jistota ens.</span>' +
-          '<span class="fc-meta-value ' + confCls + '">' + (conf != null ? conf + ' %' : '—') +
-          (pb ? deltaBadge(conf, pb.ensJistota, 'up', true) : '') + '</span></div>' +
+        '<div class="fc-meta-row" title="' + (pb ? deltaTitle(conf, pb.ensJistota, 'up', 'Jistota ens.') : '') + '">' +
+          '<span class="fc-meta-label">Jistota ens.</span>' +
+          '<span class="fc-meta-value ' + confCls + '">' + (conf != null ? conf + ' %' : '—') + '</span></div>' +
         (st.tmax ? '<div class="fc-meta-row"><span class="fc-meta-label">p10–p90</span>' +
           '<span class="fc-meta-value">' + st.tmax.p10.toFixed(0) + '–' + st.tmax.p90.toFixed(0) + '°C</span></div>' : '') +
         (det && det.max != null ? '<div class="fc-meta-row"><span class="fc-meta-label">RF (det.)</span>' +
