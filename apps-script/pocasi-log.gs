@@ -10,13 +10,14 @@
  *  4. Ulož (Ctrl+S)
  *  5. Spusť ručně: vyber fetchWeatherAndLog ▸ Run
  *     (při prvním spuštění potvrdíš oprávnění)
- *  6. Nastav denní trigger:
- *     Triggers (hodiny vlevo) ▸ + Add Trigger
- *       Function:    fetchWeatherAndLog
- *       Event source: Time-driven
- *       Type:         Day timer
- *       Time of day:  6:00–7:00
- *     → Save
+ *  6. Nastav triggery: vyber setupTriggers ▸ Run.
+ *     Založí dva denní běhy — ráno (~6:00) a večer (~18:00) —
+ *     a smaže případné staré triggery, ať se nehromadí.
+ *     Ruční nastavení přes UI už není potřeba.
+ *
+ *  Apps Script u denního triggeru volí náhodnou minutu v dané hodině,
+ *  takže "6:05" je jen kdy to zrovna vyšlo, ne přesný čas. Grafy vývoje
+ *  tím dostanou dva body denně místo jednoho.
  *
  *  Zdroj dat: open-meteo.com (zdarma, bez API klíče)
  *    – Forecast API   ≤ 16 dní předem: deterministická předpověď
@@ -200,6 +201,39 @@ function fetchWeatherAndLog() {
        .setValues(rows);
 
   Logger.log('Zapsáno ' + rows.length + ' řádků.');
+}
+
+// ── Nastavení triggerů (spusť jednou ručně) ────────────────────
+// Založí dva denní běhy — ráno a večer. Idempotentní: nejdřív smaže
+// všechny existující triggery pro fetchWeatherAndLog, takže opakované
+// spuštění nevede k duplicitním zápisům. Hodiny se mění tady na jednom
+// místě, ať nemusíš klikat v UI.
+
+var TRIGGER_HOURS = [6, 18];   // Europe/Prague
+
+function setupTriggers() {
+  var existing = ScriptApp.getProjectTriggers();
+  var smazano = 0;
+  existing.forEach(function(t) {
+    if (t.getHandlerFunction() === 'fetchWeatherAndLog') {
+      ScriptApp.deleteTrigger(t);
+      smazano++;
+    }
+  });
+
+  TRIGGER_HOURS.forEach(function(h) {
+    ScriptApp.newTrigger('fetchWeatherAndLog')
+      .timeBased()
+      .atHour(h)
+      .nearMinute(5)          // cílí k :05, Apps Script si nechává ±15 min
+      .everyDays(1)
+      .inTimezone('Europe/Prague')
+      .create();
+  });
+
+  Logger.log('Smazáno ' + smazano + ' starých triggerů, založeno ' +
+             TRIGGER_HOURS.length + ' nových: ~' +
+             TRIGGER_HOURS.join(':00, ~') + ':00 Europe/Prague.');
 }
 
 // ── Forecast API (deterministický model, ≤ 16 dní) ────────────
