@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #f0f2f5;
@@ -113,6 +114,10 @@
     .climb-summary { grid-template-columns: repeat(2, 1fr); }
   }
   .chart-wrap { background: var(--surface); padding: 28px 16px 16px; position: relative; }
+  .routetemp-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 12px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .routetemp-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .rt-swatch { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+  .routetemp-legend .rt-note { color: var(--accent2); letter-spacing: 0.02em; }
   canvas { display: block; width: 100%; }
 
   .diff-section { background: var(--surface); padding: 28px; margin-bottom: 40px; display: flex; align-items: center; gap: 32px; }
@@ -560,6 +565,24 @@
       <div class="sp-icon">🟢→🏁</div>
       <div class="sp-val">462→615<span class="sp-unit">m</span></div>
       <div class="sp-lbl">Start → Cíl</div>
+    </div>
+  </div>
+
+  <!-- TEPLOTA NA TRASE -->
+  <div class="chart-section anim anim-3" id="routetemp-section">
+    <div class="section-header">
+      <span class="section-title">Teplota na trase · čtvrtek 13.8.</span>
+      <span class="section-hint" id="routetemp-hint">dle timeline a nadmořské výšky</span>
+    </div>
+    <div class="routetemp-legend" id="routetemp-legend" style="display:none">
+      <span><span class="rt-swatch" style="background:#c94010"></span>Teplota</span>
+      <span><span class="rt-swatch" style="border-top:2px dashed #7a3f12;background:none;height:0"></span>Pocitová</span>
+      <span class="rt-note" id="routetemp-peak"></span>
+    </div>
+    <div id="routetemp-loading" style="padding:36px 0;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em">NAČÍTÁM PŘEDPOVĚĎ NA TRASU…</div>
+    <div id="routetemp-unavailable" style="display:none;padding:20px 4px;color:var(--muted);font-size:13px;line-height:1.6"></div>
+    <div class="chart-wrap" id="routetemp-wrap" style="display:none">
+      <canvas id="routeTempChart" height="240"></canvas>
     </div>
   </div>
 
@@ -1074,7 +1097,153 @@ function selectClimb(i, fromMap) {
   window.addEventListener('resize', () => cards.forEach((el, i) =>
     drawClimbProfile(el.querySelector('.cc-prof'), CLIMBS[i])));
 })();
+</script>
 
+<script>
+// ── TEPLOTA NA TRASE (čtvrtek 13.8.) ─────────────────────────────────────────
+// Živě z Open-Meteo: pro každý bod timeline se stáhne teplota v jeho čase
+// A jeho nadmořské výšce (parametr elevation → přepočet lapse-rate). Překresluje
+// se při každém načtení, takže se s blížícím datem sama aktualizuje.
+(function () {
+  var TARGET = '2026-08-13';
+  // čas z plánu, název, km, výška, souřadnice (výška u dvou vrcholů bez pinu
+  // je odhad polohy mezi Rybništěm a Žitavou — grid je hrubý, na teplotu stačí)
+  var WP = [
+    { t: '10:45', h: 10, m: 45, name: 'Rybniště',   km: 0,    ele: 461, lat: 50.88303, lon: 14.50995 },
+    { t: '11:04', h: 11, m: 4,  name: 'Jedlová',     km: 5.5,  ele: 575, lat: 50.858,   lon: 14.566 },
+    { t: '11:35', h: 11, m: 35, name: 'Nejvyšší bod',km: 12.9, ele: 670, lat: 50.850,   lon: 14.600 },
+    { t: '12:33', h: 12, m: 33, name: 'Zittau',      km: 29.3, ele: 242, lat: 50.8938,  lon: 14.8064 },
+    { t: '12:45', h: 12, m: 45, name: 'Trojmezí',    km: 32.7, ele: 240, lat: 50.874,   lon: 14.822 },
+    { t: '13:58', h: 13, m: 58, name: 'Hrádek',      km: 36.3, ele: 250, lat: 50.8498,  lon: 14.8439 },
+    { t: '14:40', h: 14, m: 40, name: 'Chrastava',   km: 48.4, ele: 296, lat: 50.8192,  lon: 14.9669 },
+    { t: '15:19', h: 15, m: 19, name: 'Liberec',     km: 59.6, ele: 350, lat: 50.7706,  lon: 15.0583 },
+    { t: '16:39', h: 16, m: 39, name: 'Kokonín',     km: 76.6, ele: 615, lat: 50.70857, lon: 15.19056 }
+  ];
+
+  var loading = document.getElementById('routetemp-loading');
+  var unavail = document.getElementById('routetemp-unavailable');
+  var wrap    = document.getElementById('routetemp-wrap');
+  var legend  = document.getElementById('routetemp-legend');
+  var hint    = document.getElementById('routetemp-hint');
+
+  function showUnavailable(msg) {
+    loading.style.display = 'none';
+    unavail.style.display = 'block';
+    unavail.textContent = msg;
+  }
+
+  // localStorage cache, 6 h — Open-Meteo účtuje podle objemu dat a má hodinový
+  // limit; bez cache by časté načítání skončilo HTTP 429.
+  function omFetch(url) {
+    var key = 'om:' + url, now = Date.now(), stale = null;
+    try {
+      var raw = localStorage.getItem(key);
+      if (raw) {
+        var c = JSON.parse(raw);
+        if (c && c.t) { if (now - c.t < 6 * 3600e3) return Promise.resolve(c.d); stale = c.d; }
+      }
+    } catch (e) {}
+    return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.error) throw new Error(d.reason || 'Open-Meteo error');
+      try { localStorage.setItem(key, JSON.stringify({ t: now, d: d })); } catch (e) {}
+      return d;
+    }).catch(function (err) { if (stale) return stale; throw err; });
+  }
+
+  function interp(hourly, varName, h, m) {
+    var times = hourly.time, base = -1;
+    for (var i = 0; i < times.length; i++) {
+      if (times[i].slice(0, 13) === TARGET + 'T' + (h < 10 ? '0' + h : h)) { base = i; break; }
+    }
+    if (base === -1) return null;
+    var v0 = hourly[varName][base];
+    if (m === 0 || base + 1 >= hourly[varName].length) return v0;
+    var v1 = hourly[varName][base + 1];
+    if (v0 == null || v1 == null) return v0;
+    return v0 + (v1 - v0) * (m / 60);
+  }
+
+  var lats = WP.map(function (w) { return w.lat; }).join(',');
+  var lons = WP.map(function (w) { return w.lon; }).join(',');
+  var eles = WP.map(function (w) { return w.ele; }).join(',');
+  var url = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude=' + lats + '&longitude=' + lons + '&elevation=' + eles
+    + '&hourly=temperature_2m,apparent_temperature,uv_index'
+    + '&forecast_days=16&timezone=Europe%2FPrague';
+
+  omFetch(url).then(function (data) {
+    var arr = Array.isArray(data) ? data : [data];
+    if (arr.length !== WP.length || !arr[0].hourly) { showUnavailable('Předpověď se nepodařilo načíst.'); return; }
+
+    var T = [], RF = [], UV = [], ok = false;
+    WP.forEach(function (w, i) {
+      var hourly = arr[i].hourly;
+      var t = interp(hourly, 'temperature_2m', w.h, w.m);
+      T.push(t);
+      RF.push(interp(hourly, 'apparent_temperature', w.h, w.m));
+      UV.push(interp(hourly, 'uv_index', w.h, w.m));
+      if (t != null) ok = true;
+    });
+
+    if (!ok) {
+      showUnavailable('Hodinová předpověď na trasu bude dostupná zhruba 14 dní před startem (' + TARGET.split('-').reverse().join('.') + '). Zatím zkuste později.');
+      return;
+    }
+
+    // nejteplejší bod dle pocitové teploty
+    var peakI = 0;
+    for (var i = 1; i < RF.length; i++) if ((RF[i] || -99) > (RF[peakI] || -99)) peakI = i;
+    document.getElementById('routetemp-peak').textContent =
+      'Nejtepleji: ' + WP[peakI].name + ' ~' + Math.round(RF[peakI]) + '° pocitově (' + WP[peakI].t + ')';
+
+    loading.style.display = 'none';
+    wrap.style.display = 'block';
+    legend.style.display = 'flex';
+    hint.textContent = 'živě z open-meteo · dle timeline a výšky';
+
+    var labels = WP.map(function (w) { return [w.t, w.name]; });
+    var muted = '#7a8799';
+    new Chart(document.getElementById('routeTempChart').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Teplota', data: T.map(function (v) { return v == null ? null : +v.toFixed(1); }),
+            borderColor: '#c94010', backgroundColor: 'rgba(201,64,16,0.08)', borderWidth: 2.5,
+            tension: 0.35, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#c94010', fill: true, spanGaps: true },
+          { label: 'Pocitová', data: RF.map(function (v) { return v == null ? null : +v.toFixed(1); }),
+            borderColor: '#7a3f12', backgroundColor: '#7a3f12', borderWidth: 2, borderDash: [5, 3],
+            tension: 0.35, spanGaps: true,
+            pointRadius: RF.map(function (_, i) { return i === peakI ? 6 : 3; }),
+            pointHoverRadius: 6, pointBackgroundColor: RF.map(function (_, i) { return i === peakI ? '#c94010' : '#7a3f12'; }) }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            titleFont: { family: 'DM Mono', size: 10 }, bodyFont: { family: 'DM Sans', size: 12 },
+            callbacks: {
+              title: function (it) { var w = WP[it[0].dataIndex]; return w.name + ' · ' + w.t + ' · ' + w.ele + ' m · km ' + w.km; },
+              label: function (c) { return c.dataset.label + ': ' + c.parsed.y.toFixed(1) + ' °C'; },
+              afterBody: function (it) { var u = UV[it[0].dataIndex]; return u != null && u > 0 ? ['UV index: ' + u.toFixed(1)] : []; }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: muted, font: { family: 'DM Mono', size: 10 }, autoSkip: false, maxRotation: 0 } },
+          y: { grid: { color: 'rgba(122,135,153,0.18)' }, ticks: { color: muted, font: { family: 'DM Mono', size: 10 }, callback: function (v) { return v + '°'; } } }
+        }
+      }
+    });
+  }).catch(function (err) {
+    showUnavailable(/limit/i.test(err.message || '')
+      ? 'Překročen hodinový limit Open-Meteo. Zkuste to za hodinu.'
+      : 'Předpověď na trasu se nepodařilo načíst.');
+  });
+})();
 </script>
 </body>
 </html>
