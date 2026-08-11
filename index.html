@@ -725,6 +725,17 @@
     </div>
   </div>
 
+  <!-- ETA CHART -->
+  <div class="chart-section anim anim-3" id="eta-section">
+    <div class="section-header">
+      <span class="section-title">Časová osa · Rybniště → Kokonín</span>
+      <span class="section-hint">odhad při Ø 20 km/h + pauza 30 min Hrádek</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="etaChart" height="220"></canvas>
+    </div>
+  </div>
+
   <!-- STOUPÁNÍ -->
   <div class="chart-section anim anim-3" id="climbs-section">
     <div class="section-header">
@@ -1132,6 +1143,161 @@ canvas.addEventListener('mousemove', e => {
   ctx2.fillStyle='#4a7a00'; ctx2.fill();
 });
 canvas.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; draw(); });
+
+// ── ETA CHART ────────────────────────────────────────────────────────────────
+(function(){
+  const AVG_SPEED = 20;
+  const START_H = 11, START_M = 15;
+  const PAUSE_KM = 22, PAUSE_MIN = 30;
+
+  const etaCanvas = document.getElementById('etaChart');
+  if (!etaCanvas) return;
+
+  function calcETA() {
+    const times = [];
+    let cumMin = 0;
+    let pauseAdded = false;
+    for (let i = 0; i < DISTS.length; i++) {
+      if (i > 0) {
+        const dKm = DISTS[i] - DISTS[i-1];
+        if (dKm <= 0) { times.push(cumMin); continue; }
+        const grade = (ELES[i] - ELES[i-1]) / (dKm * 1000) * 100;
+        let speed;
+        if (grade > 8) speed = 7;
+        else if (grade > 5) speed = 10;
+        else if (grade > 2) speed = 15;
+        else if (grade > -2) speed = AVG_SPEED;
+        else if (grade > -5) speed = 28;
+        else speed = 35;
+        cumMin += (dKm / speed) * 60;
+      }
+      if (!pauseAdded && DISTS[i] >= PAUSE_KM) {
+        cumMin += PAUSE_MIN;
+        pauseAdded = true;
+      }
+      times.push(cumMin);
+    }
+    return times;
+  }
+
+  function drawETA() {
+    const times = calcETA();
+    const W = etaCanvas.parentElement.clientWidth - 32;
+    const H = 260;
+    etaCanvas.width = W; etaCanvas.height = H;
+    const ctx = etaCanvas.getContext('2d');
+    const PL = 56, PR = 16, PT = 28, PB = 42;
+    const CW = W - PL - PR, CH = H - PT - PB;
+    const maxD = Math.ceil(DISTS[DISTS.length-1] / 10) * 10;
+    const maxT = Math.ceil(times[times.length-1] / 30) * 30;
+
+    function xP(d) { return PL + (d / maxD) * CW; }
+    function yP(t) { return PT + (t / maxT) * CH; }
+    function timeStr(min) {
+      const h = Math.floor((START_H * 60 + START_M + min) / 60);
+      const m = Math.round((START_H * 60 + START_M + min) % 60);
+      return `${h}:${String(m).padStart(2,'0')}`;
+    }
+
+    // Background
+    ctx.fillStyle = 'rgba(74,122,0,0.03)';
+    ctx.fillRect(PL, PT, CW, CH);
+
+    // Pause zone
+    const pauseIdx = DISTS.findIndex(d => d >= PAUSE_KM);
+    if (pauseIdx >= 0) {
+      const px = xP(PAUSE_KM);
+      const py1 = yP(times[pauseIdx] - PAUSE_MIN);
+      const py2 = yP(times[pauseIdx]);
+      ctx.fillStyle = 'rgba(255,165,0,0.12)';
+      ctx.fillRect(px - 12, py1, 24, py2 - py1);
+      ctx.fillStyle = '#b87000';
+      ctx.font = '9px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('☕ 30 min', px, py1 - 5);
+      ctx.fillText('Hrádek', px, py1 - 16);
+    }
+
+    // Y grid (time)
+    ctx.strokeStyle = '#d4d9e2'; ctx.lineWidth = 1;
+    ctx.fillStyle = '#7a8799'; ctx.font = '9px DM Mono, monospace'; ctx.textAlign = 'right';
+    for (let t = 0; t <= maxT; t += 30) {
+      const y = yP(t);
+      ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke();
+      ctx.fillText(timeStr(t), PL - 5, y + 3);
+    }
+
+    // X grid (km)
+    ctx.textAlign = 'center';
+    for (let d = 0; d <= maxD; d += 10) {
+      const x = xP(d);
+      ctx.beginPath(); ctx.moveTo(x, H - PB); ctx.lineTo(x, H - PB + 3); ctx.stroke();
+      ctx.fillText(d + ' km', x, H - 12);
+    }
+
+    // ETA line
+    ctx.beginPath();
+    ctx.moveTo(xP(DISTS[0]), yP(times[0]));
+    for (let i = 1; i < DISTS.length; i++) {
+      ctx.lineTo(xP(DISTS[i]), yP(times[i]));
+    }
+    ctx.strokeStyle = '#4a7a00'; ctx.lineWidth = 2.5; ctx.stroke();
+
+    // Fill under
+    ctx.lineTo(xP(DISTS[DISTS.length-1]), yP(0));
+    ctx.lineTo(xP(DISTS[0]), yP(0));
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, PT, 0, PT + CH);
+    grad.addColorStop(0, 'rgba(74,122,0,0)');
+    grad.addColorStop(1, 'rgba(74,122,0,0.10)');
+    ctx.fillStyle = grad; ctx.fill();
+
+    // Key points
+    const keyPts = [
+      {km: 0, label: 'Start'},
+      {km: PAUSE_KM, label: 'Hrádek'},
+      {km: 52.2, label: 'Ještěd ↗'},
+      {km: 63, label: 'Ještěd ⛰'},
+      {km: 72.5, label: 'Javorník'},
+      {km: DISTS[DISTS.length-1], label: 'Cíl'},
+    ];
+    keyPts.forEach(p => {
+      let idx = 0;
+      for (let i = 0; i < DISTS.length; i++) {
+        if (DISTS[i] >= p.km) { idx = i; break; }
+      }
+      const x = xP(DISTS[idx]), y = yP(times[idx]);
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#4a7a00'; ctx.fill();
+      ctx.fillStyle = '#2a3a48'; ctx.font = 'bold 9px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.label, x, y - 12);
+      ctx.font = '9px DM Mono, monospace';
+      ctx.fillStyle = '#4a7a00';
+      ctx.fillText(timeStr(times[idx]), x, y - 24);
+    });
+
+    // Avg speed annotation
+    ctx.fillStyle = '#7a8799'; ctx.font = '9px DM Mono, monospace'; ctx.textAlign = 'right';
+    const totalMin = times[times.length-1];
+    const ridingMin = totalMin - PAUSE_MIN;
+    const avgSpd = (DISTS[DISTS.length-1] / (ridingMin / 60)).toFixed(1);
+    ctx.fillText(`Ø ${avgSpd} km/h (čistý čas ${Math.floor(ridingMin/60)}h${Math.round(ridingMin%60).toString().padStart(2,'0')})`, W - PR, PT - 8);
+  }
+
+  let drawn = false;
+  function tryDraw() {
+    if (etaCanvas.parentElement.clientWidth > 40) { drawETA(); drawn = true; }
+  }
+  tryDraw();
+  window.addEventListener('resize', () => { if (drawn) drawETA(); else tryDraw(); });
+  if (!drawn) {
+    const obs = new IntersectionObserver(es => {
+      if (es[0].isIntersecting) { tryDraw(); if (drawn) obs.disconnect(); }
+    }, {threshold: 0.1});
+    obs.observe(etaCanvas);
+  }
+})();
 
 // ── STOUPÁNÍ ──────────────────────────────────────────────────────────────────
 // Kategorie i Fiets index počítáme stejně jako MapyClimbs: Fiets = H² / D
