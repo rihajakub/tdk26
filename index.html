@@ -729,7 +729,7 @@
   <div class="chart-section anim anim-3" id="eta-section">
     <div class="section-header">
       <span class="section-title">Časová osa · Rybniště → Kokonín</span>
-      <span class="section-hint">odhad při Ø 20 km/h + pauza 30 min Hrádek</span>
+      <span class="section-hint">odhad při Ø 21 km/h + pauza 30 min Hrádek</span>
     </div>
     <div class="chart-wrap">
       <canvas id="etaChart" height="220"></canvas>
@@ -1163,12 +1163,12 @@ canvas.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; draw()
         if (dKm <= 0) { times.push(cumMin); continue; }
         const grade = (ELES[i] - ELES[i-1]) / (dKm * 1000) * 100;
         let speed;
-        if (grade > 8) speed = 8;
-        else if (grade > 5) speed = 12;
-        else if (grade > 2) speed = 18;
-        else if (grade > -2) speed = 24;
-        else if (grade > -5) speed = 33;
-        else speed = 40;
+        if (grade > 8) speed = 9;
+        else if (grade > 5) speed = 13;
+        else if (grade > 2) speed = 19;
+        else if (grade > -2) speed = 25;
+        else if (grade > -5) speed = 35;
+        else speed = 42;
         cumMin += (dKm / speed) * 60;
       }
       if (!pauseAdded && DISTS[i] >= PAUSE_KM) {
