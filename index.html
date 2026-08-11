@@ -407,7 +407,7 @@
         <div class="tl-block-label">☕ DOMA</div>
         <div class="tl-events">
           <div class="tl-event">
-            <div class="tl-time">05:30</div>
+            <div class="tl-time">05:45</div>
             <div class="tl-dot prep"></div>
             <div class="tl-info">
               <div class="tl-name">Káva doma</div>
@@ -422,7 +422,7 @@
         <div class="tl-block-label">🚴 KOLO · Praha → Mladá Boleslav · rozjížďka · ~54 km</div>
         <div class="tl-events">
           <div class="tl-event">
-            <div class="tl-time">06:15</div>
+            <div class="tl-time">06:30</div>
             <div class="tl-dot start"></div>
             <div class="tl-info">
               <div class="tl-name">🟢 Praha — odjezd</div>
@@ -704,16 +704,6 @@
   </div>
 
   <!-- WARMUP CHART -->
-  <div class="chart-section anim anim-3">
-    <div class="section-header">
-      <span class="section-title">Výškový profil · rozjížďka Praha → Boleslav</span>
-      <span class="section-hint">54 km · rovina · pak vlak do Rybniště</span>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="warmupElevChart" height="110"></canvas>
-    </div>
-  </div>
-
   <!-- CHART -->
   <div class="chart-section anim anim-3">
     <div class="section-header">
@@ -721,7 +711,7 @@
       <span class="section-hint">přejeďte myší pro detail výšky</span>
     </div>
     <div class="chart-wrap">
-      <canvas id="elevChart" height="200"></canvas>
+      <canvas id="elevChart" height="320"></canvas>
     </div>
   </div>
 
@@ -777,7 +767,7 @@
       <div class="ms-row">
         <div class="ms-flag">🟢</div><div class="ms-km">0 <span class="unit">km</span></div>
         <div class="ms-bar-wrap"><div class="ms-bar" style="width:0%"></div></div>
-        <div class="ms-info"><div class="ms-name">Praha — odjezd</div><div class="ms-ele">296 m · ~06:15</div></div>
+        <div class="ms-info"><div class="ms-name">Praha — odjezd</div><div class="ms-ele">296 m · ~06:30</div></div>
       </div>
       <div class="ms-row">
         <div class="ms-flag">🚴</div><div class="ms-km">27 <span class="unit">km</span></div>
@@ -941,7 +931,7 @@ function mk(emoji, bg) {
 }
 
 const warmupPins = [
-  {pos:[50.14545,14.45148], e:'🚴', km:'0', name:'Praha — odjezd', ele:'296 m n.m. · ~06:15', bg:'#eef7dc'},
+  {pos:[50.14545,14.45148], e:'🚴', km:'0', name:'Praha — odjezd', ele:'296 m n.m. · ~06:30', bg:'#eef7dc'},
   {pos:[50.40721,14.88744], e:'🚉', km:'54', name:'Mladá Boleslav — nádraží', ele:'~230 m n.m. · vlak 09:23', bg:'#eef7dc'},
 ];
 warmupPins.forEach(p => {
@@ -973,12 +963,12 @@ const tooltip = document.getElementById('tooltip');
 
 function draw() {
   const W = canvas.parentElement.clientWidth - 32;
-  const H = 240;
+  const H = 380;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   const PL=52, PR=12, PT=24, PB=38;
   const CW=W-PL-PR, CH=H-PT-PB;
-  const minE=180, maxE=700, maxD=75;
+  const minE=180, maxE=1050, maxD=90;
 
   function xP(d){ return PL + (d/maxD)*CW; }
   function yP(e){ return PT + (1-(e-minE)/(maxE-minE))*CH; }
@@ -989,7 +979,7 @@ function draw() {
     {f:0,    t:12.8, c:'rgba(74,122,0,0.05)'},
     {f:12.8, t:32.7, c:'rgba(255,140,0,0.09)'},
     {f:32.7, t:33.7, c:'rgba(26,127,168,0.15)'},
-    {f:33.7, t:76.57,c:'rgba(26,127,168,0.04)'},
+    {f:33.7, t:84.7,c:'rgba(26,127,168,0.04)'},
   ];
   zones.forEach(z => {
     ctx.fillStyle=z.c;
@@ -1010,7 +1000,7 @@ function draw() {
 
   // Grid
   ctx.strokeStyle='#d4d9e2'; ctx.lineWidth=1;
-  [250,350,450,550,650].forEach(e=>{
+  [250,400,550,700,850,1000].forEach(e=>{
     const y=yP(e);
     ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(W-PR,y); ctx.stroke();
     ctx.fillStyle='#7a8799'; ctx.font='9px DM Mono, monospace'; ctx.textAlign='right';
@@ -1019,7 +1009,7 @@ function draw() {
 
   // X axis
   ctx.fillStyle='#7a8799'; ctx.font='9px DM Mono, monospace'; ctx.textAlign='center';
-  [0,10,20,30,40,50,60,70,76.6].forEach((d,i,arr)=>{
+  [0,10,20,30,40,50,60,70,80,84.7].forEach((d,i,arr)=>{
     const x=xP(d);
     // Krajní popisky se u okraje plátna ořezávaly — zarovnáme je dovnitř.
     ctx.textAlign = i===0 ? 'left' : (i===arr.length-1 ? 'right' : 'center');
@@ -1061,62 +1051,6 @@ function draw() {
 
 draw();
 window.addEventListener('resize', draw);
-
-// ── WARMUP ELEVATION CHART (Praha → Boleslav, simple sparkline) ───────────────
-const warmupCanvas = document.getElementById('warmupElevChart');
-function drawWarmup() {
-  const W = warmupCanvas.parentElement.clientWidth - 32;
-  const H = 110;
-  warmupCanvas.width = W; warmupCanvas.height = H;
-  const ctx = warmupCanvas.getContext('2d');
-  const PL=46, PR=12, PT=14, PB=22;
-  const CW=W-PL-PR, CH=H-PT-PB;
-  const minE=150, maxE=320, maxD=WARMUP_DISTS[WARMUP_DISTS.length-1];
-
-  const xP = d => PL + (d/maxD)*CW;
-  const yP = e => PT + (1-(e-minE)/(maxE-minE))*CH;
-
-  ctx.strokeStyle='#d4d9e2'; ctx.lineWidth=1;
-  [150,225,300].forEach(e=>{
-    const y=yP(e);
-    ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(W-PR,y); ctx.stroke();
-    ctx.fillStyle='#7a8799'; ctx.font='9px DM Mono, monospace'; ctx.textAlign='right';
-    ctx.fillText(e+'m', PL-5, y+3);
-  });
-
-  ctx.fillStyle='#7a8799'; ctx.font='9px DM Mono, monospace';
-  [0,10,20,30,40,50,Math.round(maxD)].forEach((d,i,arr)=>{
-    const x=xP(d);
-    ctx.textAlign = i===0 ? 'left' : (i===arr.length-1 ? 'right' : 'center');
-    ctx.fillText(String(d).replace('.',','), x, H-8);
-  });
-
-  const grad=ctx.createLinearGradient(0,PT,0,PT+CH);
-  grad.addColorStop(0,'rgba(143,191,63,0.22)');
-  grad.addColorStop(1,'rgba(143,191,63,0)');
-
-  ctx.beginPath();
-  ctx.moveTo(xP(WARMUP_DISTS[0]),yP(WARMUP_ELES[0]));
-  for(let i=1;i<WARMUP_DISTS.length;i++) ctx.lineTo(xP(WARMUP_DISTS[i]),yP(WARMUP_ELES[i]));
-  ctx.lineTo(xP(WARMUP_DISTS[WARMUP_DISTS.length-1]),yP(minE));
-  ctx.lineTo(xP(WARMUP_DISTS[0]),yP(minE));
-  ctx.closePath();
-  ctx.fillStyle=grad; ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(xP(WARMUP_DISTS[0]),yP(WARMUP_ELES[0]));
-  for(let i=1;i<WARMUP_DISTS.length;i++) ctx.lineTo(xP(WARMUP_DISTS[i]),yP(WARMUP_ELES[i]));
-  ctx.strokeStyle='#7a9f3f'; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.setLineDash([2,5]); ctx.stroke(); ctx.setLineDash([]);
-
-  [{d:0,e:WARMUP_ELES[0],c:'#7a9f3f'},{d:maxD,e:WARMUP_ELES[WARMUP_ELES.length-1],c:'#7a9f3f'}].forEach(m=>{
-    const x=xP(m.d),y=yP(m.e);
-    ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2);
-    ctx.fillStyle='#f0f2f5'; ctx.fill();
-    ctx.strokeStyle=m.c; ctx.lineWidth=2; ctx.stroke();
-  });
-}
-drawWarmup();
-window.addEventListener('resize', drawWarmup);
 
 canvas.addEventListener('mousemove', e => {
   if(!canvas._xP) return;
@@ -1494,7 +1428,7 @@ function selectClimb(i, fromMap) {
   // čas z plánu, název, km, výška, souřadnice (výška u dvou vrcholů bez pinu
   // je odhad polohy mezi Rybništěm a Žitavou — grid je hrubý, na teplotu stačí)
   var WP = [
-    { t: '06:15', h: 6,  m: 15, name: 'Praha — odjezd', km: 0,    ele: 296, lat: 50.14545, lon: 14.45148 },
+    { t: '06:30', h: 6,  m: 30, name: 'Praha — odjezd', km: 0,    ele: 296, lat: 50.14545, lon: 14.45148 },
     { t: '08:50', h: 8,  m: 50, name: 'Mladá Boleslav', km: 54,   ele: 230, lat: 50.40721, lon: 14.88744 },
     { t: '11:30', h: 11, m: 30, name: 'Rybniště',   km: 0,    ele: 461, lat: 50.88303, lon: 14.50995 },
     { t: '11:49', h: 11, m: 49, name: 'Jedlová',     km: 5.5,  ele: 575, lat: 50.858,   lon: 14.566 },
