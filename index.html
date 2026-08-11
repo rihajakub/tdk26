@@ -407,7 +407,7 @@
         <div class="tl-block-label">☕ DOMA</div>
         <div class="tl-events">
           <div class="tl-event">
-            <div class="tl-time">05:45</div>
+            <div class="tl-time">05:30</div>
             <div class="tl-dot prep"></div>
             <div class="tl-info">
               <div class="tl-name">Káva doma</div>
@@ -422,7 +422,7 @@
         <div class="tl-block-label">🚴 KOLO · Praha → Mladá Boleslav · rozjížďka · ~54 km</div>
         <div class="tl-events">
           <div class="tl-event">
-            <div class="tl-time">06:30</div>
+            <div class="tl-time">06:20</div>
             <div class="tl-dot start"></div>
             <div class="tl-info">
               <div class="tl-name">🟢 Praha — odjezd</div>
@@ -767,7 +767,7 @@
       <div class="ms-row">
         <div class="ms-flag">🟢</div><div class="ms-km">0 <span class="unit">km</span></div>
         <div class="ms-bar-wrap"><div class="ms-bar" style="width:0%"></div></div>
-        <div class="ms-info"><div class="ms-name">Praha — odjezd</div><div class="ms-ele">296 m · ~06:30</div></div>
+        <div class="ms-info"><div class="ms-name">Praha — odjezd</div><div class="ms-ele">296 m · ~06:20</div></div>
       </div>
       <div class="ms-row">
         <div class="ms-flag">🚴</div><div class="ms-km">27 <span class="unit">km</span></div>
@@ -931,7 +931,7 @@ function mk(emoji, bg) {
 }
 
 const warmupPins = [
-  {pos:[50.14545,14.45148], e:'🚴', km:'0', name:'Praha — odjezd', ele:'296 m n.m. · ~06:30', bg:'#eef7dc'},
+  {pos:[50.14545,14.45148], e:'🚴', km:'0', name:'Praha — odjezd', ele:'296 m n.m. · ~06:20', bg:'#eef7dc'},
   {pos:[50.40721,14.88744], e:'🚉', km:'54', name:'Mladá Boleslav — nádraží', ele:'~230 m n.m. · vlak 09:23', bg:'#eef7dc'},
 ];
 warmupPins.forEach(p => {
@@ -1428,7 +1428,7 @@ function selectClimb(i, fromMap) {
   // čas z plánu, název, km, výška, souřadnice (výška u dvou vrcholů bez pinu
   // je odhad polohy mezi Rybništěm a Žitavou — grid je hrubý, na teplotu stačí)
   var WP = [
-    { t: '06:30', h: 6,  m: 30, name: 'Praha — odjezd', km: 0,    ele: 296, lat: 50.14545, lon: 14.45148 },
+    { t: '06:20', h: 6,  m: 20, name: 'Praha — odjezd', km: 0,    ele: 296, lat: 50.14545, lon: 14.45148 },
     { t: '08:50', h: 8,  m: 50, name: 'Mladá Boleslav', km: 54,   ele: 230, lat: 50.40721, lon: 14.88744 },
     { t: '11:30', h: 11, m: 30, name: 'Rybniště',   km: 0,    ele: 461, lat: 50.88303, lon: 14.50995 },
     { t: '11:49', h: 11, m: 49, name: 'Jedlová',     km: 5.5,  ele: 575, lat: 50.858,   lon: 14.566 },
