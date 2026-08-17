@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jesolo 2026 — Předpověď počasí</title>
+<style>
+  :root {
+    --bg: #e8eaef;
+    --surface: #ffffff;
+    --surface2: #dde1e9;
+    --border: #c4cad6;
+    --accent: #0e6d96;
+    --accent-bright: #1a9fd4;
+    --accent2: #b83200;
+    --accent3: #3d6800;
+    --text: #0c1118;
+    --muted: #4e5d6e;
+    --hero-bg: #0c1118;
+    --hero-muted: rgba(255,255,255,0.45);
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1520;
+      --surface: #111f2c;
+      --surface2: #182838;
+      --border: #243848;
+      --accent: #3db8e8;
+      --accent-bright: #5cc8f0;
+      --accent2: #f07040;
+      --accent3: #6aaa30;
+      --text: #e0dcd6;
+      --muted: #7a94a8;
+      --hero-bg: #060e16;
+      --hero-muted: rgba(255,255,255,0.35);
+      --shadow: 0 2px 12px rgba(0,0,0,0.25);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1520;
+    --surface: #111f2c;
+    --surface2: #182838;
+    --border: #243848;
+    --accent: #3db8e8;
+    --accent-bright: #5cc8f0;
+    --accent2: #f07040;
+    --accent3: #6aaa30;
+    --text: #e0dcd6;
+    --muted: #7a94a8;
+    --hero-bg: #060e16;
+    --hero-muted: rgba(255,255,255,0.35);
+    --shadow: 0 2px 12px rgba(0,0,0,0.25);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.35);
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; min-height: 100vh; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px 60px; }
+
+  header { background: var(--hero-bg); margin: 0 -24px 48px; padding: 32px 24px 36px; }
+  .header-label { font-family: 'SF Mono', 'Cascadia Mono', 'Consolas', monospace; font-size: 10px; letter-spacing: 0.25em; color: var(--hero-muted); text-transform: uppercase; margin-bottom: 10px; }
+  h1 { font-size: clamp(52px, 12vw, 88px); line-height: 0.9; color: #fff; font-weight: 800; letter-spacing: -0.02em; }
+  h1 .accent { color: var(--accent-bright); }
+  .header-sub { font-size: 13px; color: var(--hero-muted); font-weight: 300; letter-spacing: 0.04em; margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+  .header-sub::before { content: ''; display: block; width: 28px; height: 1px; background: var(--accent-bright); flex-shrink: 0; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px; }
+  .tag { display: inline-flex; align-items: center; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 3px; padding: 4px 10px; font-family: 'SF Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: rgba(255,255,255,0.6); text-transform: uppercase; }
+  .tag-live { position: relative; padding-left: 20px !important; }
+  .tag-live::before { content: ''; position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--accent-bright); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: translateY(-50%) scale(1); } 50% { opacity: 0.35; transform: translateY(-50%) scale(1.5); } }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 13px; border-bottom: 2px solid var(--border); }
+  .section-title { font-family: 'SF Mono', monospace; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text); font-weight: 500; }
+  .section-hint { font-size: 11px; color: var(--muted); font-family: 'SF Mono', monospace; }
+  .chart-section { margin-bottom: 48px; }
+
+  /* Forecast cards */
+  .forecast-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-bottom: 3px; }
+  @media (max-width: 600px) { .forecast-grid { grid-template-columns: repeat(2, 1fr); } }
+  .fc-card { background: var(--surface); padding: 20px 16px 16px; position: relative; overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.2s, transform 0.2s; }
+  .fc-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .fc-card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .fc-day { font-family: 'SF Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .fc-icon { font-size: 28px; margin-bottom: 6px; line-height: 1; }
+  .fc-temp { font-size: 44px; font-weight: 800; line-height: 1; color: var(--text); margin-bottom: 2px; letter-spacing: -0.02em; }
+  .fc-temp .unit { font-size: 18px; color: var(--muted); margin-left: 1px; font-weight: 400; }
+  .fc-desc { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .fc-rf { font-family: 'SF Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 6px; }
+  .fc-rf b { color: var(--text); font-weight: 500; }
+  .fc-rain { font-family: 'SF Mono', monospace; font-size: 10px; color: var(--accent); font-weight: 500; margin-bottom: 4px; }
+  .fc-meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .fc-meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .fc-meta-label { font-family: 'SF Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .fc-meta-value { font-family: 'SF Mono', monospace; font-size: 10px; color: var(--text); font-weight: 500; }
+  .fc-meta-value.low { color: var(--accent2); }
+  .fc-meta-value.mid { color: #96700a; }
+  .fc-meta-value.high { color: var(--accent3); }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-bottom: 48px; }
+  @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card { background: var(--surface); padding: 22px 20px; position: relative; overflow: hidden; box-shadow: var(--shadow); }
+  .stat-card-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+  .stat-icon { font-size: 16px; margin-bottom: 10px; }
+  .stat-value { font-size: 40px; font-weight: 800; line-height: 1; color: var(--text); margin-bottom: 3px; letter-spacing: -0.02em; }
+  .stat-value .unit { font-size: 16px; color: var(--muted); margin-left: 2px; font-weight: 400; }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; font-family: 'SF Mono', monospace; font-weight: 500; }
+
+  /* Probability matrix */
+  .prob-table { width: 100%; background: var(--surface); border-collapse: collapse; box-shadow: var(--shadow); }
+  .prob-table th { font-family: 'SF Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 12px 10px; border-bottom: 2px solid var(--border); font-weight: 500; text-align: center; }
+  .prob-table th.jev { text-align: left; min-width: 170px; }
+  .prob-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .prob-table tbody tr:hover td { background: rgba(0,0,0,0.02); }
+  .prob-jev { font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 7px; }
+  .prob-jev .ico { font-size: 15px; line-height: 1; }
+  .prob-jev .thr { font-family: 'SF Mono', monospace; font-size: 9px; color: var(--muted); display: block; margin-top: 1px; }
+  .prob-cell { text-align: center; }
+  .prob-val { font-family: 'SF Mono', monospace; font-size: 13px; font-weight: 500; line-height: 1.15; }
+  .prob-bar { height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+  .prob-bar i { display: block; height: 100%; border-radius: 2px; }
+  .prob-klim { font-family: 'SF Mono', monospace; font-size: 9px; color: var(--muted); margin-top: 4px; }
+
+  .ens-strip { display: flex; flex-wrap: wrap; gap: 18px; background: var(--surface); padding: 13px 20px; box-shadow: var(--shadow); margin-bottom: 3px; }
+  .ens-strip div { font-family: 'SF Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.06em; }
+  .ens-strip b { color: var(--text); font-weight: 500; }
+
+  /* Spread bars */
+  .spread-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 3px; }
+  .spread-card { background: var(--surface); padding: 16px; box-shadow: var(--shadow); }
+  .spread-card .sp-day { font-family: 'SF Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .spread-card .sp-bar { position: relative; height: 120px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .sp-range { position: absolute; left: 50%; transform: translateX(-50%); border-radius: 3px; }
+  .sp-p1090 { width: 24px; background: rgba(14,109,150,0.15); border: 1px solid rgba(14,109,150,0.3); }
+  .sp-p2575 { width: 14px; background: rgba(14,109,150,0.35); border: 1px solid var(--accent); }
+  .sp-med { position: absolute; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); z-index: 2; }
+  .sp-labels { display: flex; justify-content: space-between; margin-top: 8px; font-family: 'SF Mono', monospace; font-size: 9px; color: var(--muted); }
+  .sp-med-label { text-align: center; font-family: 'SF Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text); margin-top: 6px; }
+
+  /* Canvas charts */
+  .chart-wrap { background: var(--surface); padding: 20px 16px 16px; box-shadow: var(--shadow); }
+  canvas { display: block; width: 100%; }
+
+  /* Water */
+  .water-strip { display: flex; gap: 2px; border-radius: 0; overflow: hidden; margin-bottom: 3px; }
+  .water-day { flex: 1; background: var(--surface); padding: 14px 8px; text-align: center; box-shadow: var(--shadow); }
+  .water-day .w-day { font-family: 'SF Mono', monospace; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .water-day .w-temp { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .water-day .w-temp .unit { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+  /* Info / packing */
+  .info-box { background: var(--surface); padding: 20px 24px; margin-bottom: 48px; border-left: 3px solid var(--accent); box-shadow: var(--shadow); }
+  .info-box p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .info-box strong { color: var(--text); font-weight: 500; }
+  .notes-section { background: var(--surface); padding: 20px 24px; box-shadow: var(--shadow); margin-bottom: 48px; }
+  .notes-section h3 { font-size: 15px; margin-bottom: 10px; color: var(--text); font-weight: 600; }
+  .notes-section ul { list-style: none; padding: 0; margin: 0; }
+  .notes-section li { font-size: 13px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--border); line-height: 1.5; }
+  .notes-section li:last-child { border-bottom: none; }
+  .notes-section li strong { color: var(--text); }
+
+  /* Climate table */
+  .climate-table { width: 100%; background: var(--surface); border-collapse: collapse; box-shadow: var(--shadow); }
+  .climate-table th { font-family: 'SF Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 10px 8px; border-bottom: 2px solid var(--border); font-weight: 500; text-align: center; }
+  .climate-table td { font-family: 'SF Mono', monospace; font-size: 11px; padding: 8px; border-bottom: 1px solid var(--border); color: var(--text); text-align: center; }
+  .climate-table tbody tr:hover td { background: var(--surface2); }
+  .climate-table .muted { color: var(--muted); }
+
+  .loading { text-align: center; padding: 60px 20px; }
+  .loading-spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'SF Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  footer { border-top: 2px solid var(--border); padding-top: 24px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .footer-text { font-family: 'SF Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  .footer-dots { display: flex; gap: 6px; }
+  .footer-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+  .footer-dots span:first-child { background: var(--accent-bright); animation: pulse 2.4s ease-in-out infinite; }
+
+  @media (max-width: 600px) {
+    .container { padding: 0 16px 40px; }
+    header { margin: 0 -16px 36px; padding: 24px 16px 28px; }
+    h1 { font-size: clamp(44px, 14vw, 70px); }
+    .fc-temp { font-size: 36px; }
+    .stat-value { font-size: 32px; }
+    .prob-table th, .prob-table td { padding: 8px 6px; }
+    .prob-jev { font-size: 11px; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-label">Předpověď počasí · Dovolená</div>
+    <h1>JESOLO <span class="accent">2026</span></h1>
+    <div class="header-sub">Lido di Jesolo, Benátská riviéra &mdash; 31. srpna &ndash; 5. září</div>
+    <div class="tags">
+      <span class="tag">Open-Meteo API</span>
+      <span class="tag" id="tag-source">Ensemble forecast</span>
+      <span class="tag tag-live" id="tag-updated">Aktualizace: &mdash;</span>
+    </div>
+  </header>
+
+  <div id="loading" class="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Načítám data&hellip;</div>
+  </div>
+
+  <div id="content" style="display:none;">
+
+    <!-- 1. Forecast cards -->
+    <div class="section-header">
+      <span class="section-title">Aktuální předpověď</span>
+      <span class="section-hint" id="hint-src"></span>
+    </div>
+    <div class="forecast-grid" id="forecast-cards"></div>
+    <div class="stats-grid" id="summary-stats"></div>
+
+    <!-- 2. Probability matrix -->
+    <div class="chart-section" id="prob-section">
+      <div class="section-header">
+        <span class="section-title">Pravděpodobnost jevů</span>
+        <span class="section-hint" id="prob-hint">ensemble · podíl členů</span>
+      </div>
+      <div id="prob-loading" class="loading"><div class="loading-spinner"></div><div class="loading-text">Načítám ensemble…</div></div>
+      <div id="prob-content" style="display:none">
+        <div class="ens-strip" id="ens-strip"></div>
+        <div style="overflow-x:auto">
+          <table class="prob-table" id="prob-table">
+            <thead><tr>
+              <th class="jev">Jev</th>
+              <th>Ne 31.8.</th><th>Po 1.9.</th><th>Út 2.9.</th><th>St 3.9.</th><th>Čt 4.9.</th><th>Pá 5.9.</th>
+            </tr></thead>
+            <tbody id="prob-body"></tbody>
+          </table>
+        </div>
+        <div class="info-box" style="margin-top:3px;margin-bottom:0">
+          <p><strong>Jak to čte:</strong> velké číslo = podíl členů ensemblu, u kterých jev nastal (skutečná pravděpodobnost).
+          Pod ním <strong>klim.</strong> = jak často ten samý jev nastal ve stejný den v letech 2014–2025.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Rozptyl předpovědi -->
+    <div class="chart-section" id="spread-section" style="display:none">
+      <div class="section-header">
+        <span class="section-title">Rozptyl předpovědi</span>
+        <span class="section-hint">percentily teploty · jak moc se členové shodnou</span>
+      </div>
+      <div class="spread-grid" id="spread-grid"></div>
+    </div>
+
+    <!-- 4. Srážky -->
+    <div class="chart-section">
+      <div class="section-header">
+        <span class="section-title">Srážky</span>
+        <span class="section-hint" id="rain-hint">medián ensemblu · P(> 0,5 mm)</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-rain" height="200"></canvas></div>
+    </div>
+
+    <!-- 5. Teplota moře -->
+    <div class="chart-section">
+      <div class="section-header">
+        <span class="section-title">Teplota moře</span>
+        <span class="section-hint">Marine API · denní maximum</span>
+      </div>
+      <div class="water-strip" id="waterStrip"></div>
+    </div>
+
+    <!-- 6. Klimatologie -->
+    <div class="chart-section" id="climate-section">
+      <div class="section-header">
+        <span class="section-title">Historická klimatologie · 2014–2025</span>
+        <span class="section-hint">31.8.–5.9. · Jesolo</span>
+      </div>
+      <div id="climate-loading" class="loading"><div class="loading-spinner"></div><div class="loading-text">Načítám historická data…</div></div>
+      <div id="climate-content" style="display:none">
+        <div class="stats-grid" id="climate-cards" style="margin-bottom:12px"></div>
+        <div style="overflow-x:auto">
+          <table class="climate-table" id="climate-table">
+            <thead><tr>
+              <th>Rok</th>
+              <th>31.8.</th><th>1.9.</th><th>2.9.</th><th>3.9.</th><th>4.9.</th><th>5.9.</th>
+              <th>Průměr</th><th>Déšť</th>
+            </tr></thead>
+            <tbody id="climate-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Co vzít -->
+    <div class="notes-section" id="packing">
+      <h3>Co vzít s sebou</h3>
+      <ul id="packingList">
+        <li><strong>Opalovací krém SPF 50</strong> — UV index bývá 6–8, velmi vysoký od 11 do 15 h</li>
+        <li><strong>Lehké oblečení</strong> — přes den kolem 25–28 °C, večer pokles k 17 °C</li>
+        <li><strong>Lehká mikina / svetr</strong> — večerní procházky po lungomare</li>
+        <li><strong>Sluneční brýle + klobouk</strong> — celodenní pobyt na pláži</li>
+        <li><strong>Adaptér IT</strong> — typ L (třípinový), nabíječky s USB-C fungují bez</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <p>Zdroje: <strong>open-meteo.com</strong> — Ensemble API (GEFS 0,5° + ECMWF IFS 0,25°),
+      Forecast API (do 16 dnů), Marine API (teplota moře) a Archive API (ERA5) pro klimatologii 2014–2025.
+      Pravděpodobnost = podíl členů ensemblu, u kterých jev nastal. Rozptyl teploty ukazuje shodu modelů — nižší = vyšší jistota.</p>
+    </div>
+
+  </div>
+
+  <footer>
+    <span class="footer-text">Jesolo 2026 &mdash; Počasí</span>
+    <div class="footer-dots"><span></span><span></span><span></span></div>
+  </footer>
+</div>
+
+<script>
+var LAT = 45.51, LON = 12.64;
+var ISO_DAYS = ['2026-08-31','2026-09-01','2026-09-02','2026-09-03','2026-09-04','2026-09-05'];
+var DAY_LABELS = ['Ne 31.8.','Po 1.9.','Út 2.9.','St 3.9.','Čt 4.9.','Pá 5.9.'];
+var DAY_NAMES = ['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek'];
+var DAY_COLORS = ['#0e6d96','#b83200','#3d6800','#6b3fa0','#c87b20','#4e5d6e'];
+
+// ── CACHE ──
+function omFetch(ttlMin, url) {
+  var key = 'omj:' + url, now = Date.now(), stale = null;
+  try {
+    var raw = localStorage.getItem(key);
+    if (raw) { var c = JSON.parse(raw); if (c && c.t && now - c.t < ttlMin * 60000) return Promise.resolve(c.d); if (c) stale = c.d; }
+  } catch(e) {}
+  return fetch(url).then(function(r){return r.json()}).then(function(data) {
+    if (data && data.error) throw new Error(data.reason || 'Open-Meteo error');
+    try { localStorage.setItem(key, JSON.stringify({t:now,d:data})); } catch(e) {
+      try { for (var i=localStorage.length-1;i>=0;i--) { var k=localStorage.key(i); if(k&&k.indexOf('omj:')===0) localStorage.removeItem(k); } localStorage.setItem(key, JSON.stringify({t:now,d:data})); } catch(e2) {}
+    }
+    return data;
+  }).catch(function(err) { if (stale) return stale; throw err; });
+}
+
+function pctl(sorted, q) {
+  if (!sorted.length) return null;
+  var pos = (sorted.length-1)*q, lo=Math.floor(pos), hi=Math.ceil(pos);
+  return lo===hi ? sorted[lo] : sorted[lo]+(sorted[hi]-sorted[lo])*(pos-lo);
+}
+function median(arr) { return pctl(arr.slice().sort(function(a,b){return a-b}), 0.5); }
+
+function memberKeys(daily, prefix) {
+  return Object.keys(daily).filter(function(k) {
+    if (k==='time' || k.indexOf(prefix)!==0) return false;
+    var rest = k.slice(prefix.length);
+    return rest==='' || rest.charAt(0)==='_';
+  });
+}
+
+function wmoIcon(code) {
+  if (code==null) return '☀️';
+  if (code<=1) return '☀️'; if (code<=3) return '⛅'; if (code<=48) return '🌫️';
+  if (code<=57) return '🌦️'; if (code<=67) return '🌧️'; if (code<=82) return '🌧️';
+  if (code<=99) return '⛈️'; return '☀️';
+}
+function wmoDesc(code) {
+  if (code==null) return ''; if (code<=1) return 'Jasno'; if (code==2) return 'Polojasno';
+  if (code==3) return 'Oblačno'; if (code<=48) return 'Mlha'; if (code<=57) return 'Mrholení';
+  if (code<=65) return 'Déšť'; if (code<=82) return 'Přeháňky'; if (code<=99) return 'Bouřky'; return '';
+}
+
+function confFromSpread(stats) {
+  if (!stats) return null;
+  var w = stats.p90 - stats.p10;
+  return Math.max(10, Math.min(95, Math.round(100 - (w-2)*(75/10))));
+}
+function confClass(v) { return v>=70?'high':(v>=30?'mid':'low'); }
+
+// ── DATA STORE ──
+var _ens = null, _forecast = {}, _marine = {}, _climateProb = {};
+var ENS_FIELDS = {
+  tmax:'temperature_2m_max', tmin:'temperature_2m_min',
+  rfmax:'apparent_temperature_max', rfmin:'apparent_temperature_min',
+  precip:'precipitation_sum', gust:'wind_gusts_10m_max'
+};
+
+// ── 1. ENSEMBLE DAILY ──
+function loadEnsemble() {
+  var url = 'https://ensemble-api.open-meteo.com/v1/ensemble' +
+    '?latitude='+LAT+'&longitude='+LON +
+    '&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,wind_gusts_10m_max' +
+    '&models=gfs05,ecmwf_ifs025' +
+    '&start_date='+ISO_DAYS[0]+'&end_date='+ISO_DAYS[5] +
+    '&timezone=Europe%2FBerlin';
+  return omFetch(60, url).then(function(data) {
+    var daily = data.daily;
+    if (!daily || !daily.time) throw new Error('no ensemble data');
+    var keys = {};
+    Object.keys(ENS_FIELDS).forEach(function(f) { keys[f] = memberKeys(daily, ENS_FIELDS[f]); });
+    var out = {};
+    ISO_DAYS.forEach(function(iso) {
+      var i = daily.time.indexOf(iso);
+      if (i===-1) return;
+      var members = [], n = keys.tmax.length;
+      for (var m=0; m<n; m++) {
+        var mem = {}, ok = false;
+        Object.keys(ENS_FIELDS).forEach(function(f) {
+          var k = keys[f][m], v = (k && daily[k]) ? daily[k][i] : null;
+          mem[f] = v; if (f==='tmax' && v!=null) ok=true;
+        });
+        if (ok) members.push(mem);
+      }
+      if (!members.length) return;
+      out[iso] = { members: members, n: members.length, stats: {} };
+      Object.keys(ENS_FIELDS).forEach(function(f) {
+        var vals = members.map(function(m){return m[f]}).filter(function(v){return v!=null}).sort(function(a,b){return a-b});
+        out[iso].stats[f] = vals.length ? {
+          n:vals.length, min:vals[0], max:vals[vals.length-1],
+          p10:pctl(vals,0.10), p25:pctl(vals,0.25), med:pctl(vals,0.50),
+          p75:pctl(vals,0.75), p90:pctl(vals,0.90)
+        } : null;
+      });
+    });
+    _ens = out;
+    return out;
+  });
+}
+
+// ── 2. FORECAST (16-day, more accurate) ──
+function loadForecast() {
+  var url = 'https://api.open-meteo.com/v1/forecast' +
+    '?latitude='+LAT+'&longitude='+LON +
+    '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,' +
+    'wind_speed_10m_max,wind_gusts_10m_max,relative_humidity_2m_mean,' +
+    'uv_index_max,weather_code,wind_direction_10m_dominant,' +
+    'apparent_temperature_max,apparent_temperature_min' +
+    '&forecast_days=16&timezone=Europe%2FBerlin';
+  return omFetch(60, url).then(function(data) {
+    if (!data.daily) return;
+    var d = data.daily;
+    d.time.forEach(function(dt, i) {
+      if (ISO_DAYS.indexOf(dt)===-1) return;
+      _forecast[dt] = {
+        hi: d.temperature_2m_max[i], lo: d.temperature_2m_min[i],
+        wind: d.wind_speed_10m_max[i], gusts: d.wind_gusts_10m_max[i],
+        windDir: d.wind_direction_10m_dominant ? d.wind_direction_10m_dominant[i] : null,
+        humidity: d.relative_humidity_2m_mean ? d.relative_humidity_2m_mean[i] : null,
+        uv: d.uv_index_max[i], wmo: d.weather_code[i],
+        rainProb: d.precipitation_probability_max ? d.precipitation_probability_max[i] : null,
+        rain: d.precipitation_sum[i],
+        rfMax: d.apparent_temperature_max ? d.apparent_temperature_max[i] : null,
+        rfMin: d.apparent_temperature_min ? d.apparent_temperature_min[i] : null
+      };
+    });
+  }).catch(function(){});
+}
+
+// ── 3. MARINE ──
+// Marine forecast API sahá jen ~9-10 dní dopředu (na rozdíl od počasí, které
+// jde na 16). Pro dny mimo její dosah dopočítáme medián ze seasonal API,
+// která nese i sea_surface_temperature_max s 51 členy ensemblu — teplota moře
+// je na tomhle horizontu velmi stabilní veličina, takže i jeden medián stačí.
+function loadMarine() {
+  var fUrl = 'https://marine-api.open-meteo.com/v1/marine' +
+    '?latitude='+LAT+'&longitude='+LON +
+    '&daily=sea_surface_temperature_max&forecast_days=16&timezone=Europe%2FBerlin';
+  var sUrl = 'https://seasonal-api.open-meteo.com/v1/seasonal' +
+    '?latitude='+LAT+'&longitude='+LON +
+    '&daily=sea_surface_temperature_max' +
+    '&start_date='+ISO_DAYS[0]+'&end_date='+ISO_DAYS[5] +
+    '&timezone=Europe%2FBerlin';
+
+  return omFetch(60, fUrl).then(function(data) {
+    if (data.daily) {
+      data.daily.time.forEach(function(dt, i) {
+        var v = data.daily.sea_surface_temperature_max[i];
+        if (ISO_DAYS.indexOf(dt)!==-1 && v!=null) _marine[dt] = v;
+      });
+    }
+  }).catch(function(){}).then(function() {
+    var missing = ISO_DAYS.filter(function(d){return _marine[d]==null});
+    if (!missing.length) return;
+    return omFetch(180, sUrl).then(function(data) {
+      var d = data.daily;
+      if (!d || !d.time) return;
+      d.time.forEach(function(dt, i) {
+        if (ISO_DAYS.indexOf(dt)===-1 || _marine[dt]!=null) return;
+        var vals = Object.keys(d).filter(function(k) {
+          return k.indexOf('sea_surface_temperature_max')===0 && d[k][i]!=null;
+        }).map(function(k){return d[k][i]}).sort(function(a,b){return a-b});
+        if (vals.length) _marine[dt] = median(vals);
+      });
+    }).catch(function(){});
+  });
+}
+
+// ── 4. CLIMATE ARCHIVE ──
+function loadClimate() {
+  var url = 'https://archive-api.open-meteo.com/v1/archive' +
+    '?latitude='+LAT+'&longitude='+LON +
+    '&start_date=2014-08-31&end_date=2025-09-05' +
+    '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,apparent_temperature_max,wind_gusts_10m_max' +
+    '&timezone=Europe%2FBerlin';
+  return omFetch(43200, url).then(function(data) {
+    if (!data.daily || !data.daily.time) return;
+    var d = data.daily;
+    // group by MM-DD
+    var byMD = {};
+    d.time.forEach(function(dt, i) {
+      var md = dt.slice(5); // "08-31", "09-01", etc.
+      if (!byMD[md]) byMD[md] = [];
+      byMD[md].push({
+        year: parseInt(dt.slice(0,4)),
+        tmax: d.temperature_2m_max[i], tmin: d.temperature_2m_min[i],
+        rain: d.precipitation_sum[i],
+        rf: d.apparent_temperature_max ? d.apparent_temperature_max[i] : null,
+        gust: d.wind_gusts_10m_max ? d.wind_gusts_10m_max[i] : null
+      });
+    });
+    // map ISO_DAYS to MD keys
+    ISO_DAYS.forEach(function(iso) {
+      var md = iso.slice(5);
+      _climateProb[iso] = byMD[md] || [];
+    });
+    renderClimate();
+  }).catch(function(err) {
+    document.getElementById('climate-loading').innerHTML =
+      '<div class="loading-text">Historická data se nepodařilo načíst.</div>';
+  });
+}
+
+// ── RENDER CARDS ──
+function renderCards() {
+  var container = document.getElementById('forecast-cards');
+  container.innerHTML = '';
+  ISO_DAYS.forEach(function(iso, i) {
+    var e = _ens && _ens[iso];
+    var f = _forecast[iso];
+    var st = e ? e.stats : null;
+
+    var hi, lo, desc, icon, rfMax, rfMin, pRain, mmMed, conf, p10, p90;
+    var windStr='—', gustStr='—', humStr='—', uvStr='—', uvVal=null;
+
+    if (st && st.tmax) {
+      hi = st.tmax.med; lo = st.tmin ? st.tmin.med : null;
+      p10 = st.tmax.p10; p90 = st.tmax.p90;
+      conf = confFromSpread(st.tmax);
+    }
+    if (st && st.rfmax) { rfMax = st.rfmax.med; }
+    if (st && st.rfmin) { rfMin = st.rfmin.med; }
+
+    if (e) {
+      var wet = e.members.filter(function(m){return m.precip!=null && m.precip>0.5}).length;
+      pRain = Math.round(100*wet/e.n);
+      mmMed = st.precip ? st.precip.med : null;
+    }
+
+    // forecast overrides for closer days
+    if (f) {
+      if (f.hi!=null) { hi = f.hi; lo = f.lo; }
+      if (f.wmo!=null) { desc = wmoDesc(f.wmo); icon = wmoIcon(f.wmo); }
+      if (f.wind!=null) windStr = Math.round(f.wind)+' km/h';
+      if (f.gusts!=null) gustStr = Math.round(f.gusts)+' km/h';
+      if (f.humidity!=null) humStr = Math.round(f.humidity)+'%';
+      if (f.uv!=null) { uvVal = f.uv; uvStr = f.uv.toFixed(1); }
+      if (f.rfMax!=null) rfMax = f.rfMax;
+      if (f.rfMin!=null) rfMin = f.rfMin;
+      if (f.rainProb!=null && pRain==null) pRain = f.rainProb;
+    }
+
+    // ensemble-based desc
+    if (!desc && pRain!=null) {
+      if (pRain>=70) { desc='Déšť pravděpodobný'; icon='🌧️'; }
+      else if (pRain>=45) { desc='Přeháňky'; icon='🌦️'; }
+      else if (pRain>=20) { desc='Občas přeháňka'; icon='⛅'; }
+      else { desc='Převážně suché'; icon='☀️'; }
+    }
+    if (!desc) { desc='—'; icon='☀️'; }
+
+    var confCls = confClass(conf||0);
+    var card = document.createElement('div');
+    card.className = 'fc-card';
+    card.innerHTML =
+      '<div class="fc-card-accent" style="background:'+DAY_COLORS[i]+'"></div>' +
+      '<div class="fc-day">'+DAY_NAMES[i]+' '+DAY_LABELS[i].split(' ')[1]+'</div>' +
+      '<div class="fc-icon">'+icon+'</div>' +
+      '<div class="fc-temp">'+(hi!=null?Math.round(hi):'—')+'<span class="unit">°C</span></div>' +
+      '<div class="fc-desc">'+desc+'</div>' +
+      (rfMax!=null ? '<div class="fc-rf">Real Feel <b>'+rfMax.toFixed(1)+'°</b>'+(rfMin!=null?' / '+rfMin.toFixed(1)+'°':'')+'</div>' : '') +
+      (pRain!=null ? '<div class="fc-rain">💧 '+(mmMed!=null?mmMed.toFixed(1)+' mm · ':'')+'P '+pRain+' %</div>' : '') +
+      '<div class="fc-meta">' +
+        '<div class="fc-meta-row"><span class="fc-meta-label">Min</span><span class="fc-meta-value">'+(lo!=null?lo.toFixed(1)+'°C':'—')+'</span></div>' +
+        (conf!=null?'<div class="fc-meta-row"><span class="fc-meta-label">Jistota</span><span class="fc-meta-value '+confCls+'">'+conf+' %</span></div>':'') +
+        (p10!=null?'<div class="fc-meta-row"><span class="fc-meta-label">p10–p90</span><span class="fc-meta-value">'+p10.toFixed(0)+'–'+p90.toFixed(0)+'°C</span></div>':'') +
+        '<div class="fc-meta-row"><span class="fc-meta-label">Vítr</span><span class="fc-meta-value">'+windStr+'</span></div>' +
+        '<div class="fc-meta-row"><span class="fc-meta-label">Nárazy</span><span class="fc-meta-value">'+gustStr+'</span></div>' +
+        '<div class="fc-meta-row"><span class="fc-meta-label">Vlhkost</span><span class="fc-meta-value">'+humStr+'</span></div>' +
+        (uvVal!=null?'<div class="fc-meta-row"><span class="fc-meta-label">UV</span><span class="fc-meta-value" style="color:'+(uvVal>=8?'#c94010':(uvVal>=6?'#d46800':'#b8860b'))+';font-weight:600">'+uvStr+'</span></div>':'') +
+      '</div>';
+    container.appendChild(card);
+  });
+}
+
+// ── RENDER SUMMARY ──
+function renderSummary() {
+  var container = document.getElementById('summary-stats');
+  var temps=[], rfs=[], rainSum=0, maxPRain=0, confs=[], seaVals=[];
+  ISO_DAYS.forEach(function(iso) {
+    var e = _ens&&_ens[iso], f = _forecast[iso];
+    var st = e?e.stats:null;
+    if (st&&st.tmax) { temps.push(st.tmax.med); confs.push(confFromSpread(st.tmax)); }
+    else if (f&&f.hi!=null) temps.push(f.hi);
+    if (st&&st.rfmax) rfs.push(st.rfmax.med);
+    else if (f&&f.rfMax!=null) rfs.push(f.rfMax);
+    if (st&&st.precip) rainSum += st.precip.med;
+    if (e) { var wet=e.members.filter(function(m){return m.precip!=null&&m.precip>0.5}).length; maxPRain=Math.max(maxPRain,wet/e.n); }
+    if (_marine[iso]!=null) seaVals.push(_marine[iso]);
+  });
+  function avg(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:null;}
+  var avgT=avg(temps), maxT=temps.length?Math.max.apply(null,temps):null;
+  var avgRF=avg(rfs), avgConf=confs.length?Math.round(avg(confs)):null;
+  var avgSea=seaVals.length?Math.round(avg(seaVals)):null;
+
+  function tile(bar,ico,val,unit,label) {
+    return '<div class="stat-card"><div class="stat-card-bar" style="background:'+bar+'"></div>' +
+      '<div class="stat-icon">'+ico+'</div>' +
+      '<div class="stat-value">'+val+'<span class="unit">'+unit+'</span></div>' +
+      '<div class="stat-label">'+label+'</div></div>';
+  }
+  container.innerHTML =
+    tile('#0e6d96','🌡️',avgT!=null?avgT.toFixed(1):'—','°C','Průměrná teplota') +
+    tile('#b83200','🔥',maxT!=null?maxT.toFixed(1):'—','°C','Nejteplejší den') +
+    (avgRF!=null?tile('#c94010','🥵',avgRF.toFixed(1),'°C','Real Feel průměr'):'') +
+    tile('#0e6d96','💧',rainSum.toFixed(1),'mm','Srážky za 6 dní') +
+    tile('#b83200','🌧️',Math.round(maxPRain*100),'%','Max P(déšť) za den') +
+    (avgConf!=null?tile('#4e5d6e','🎯',avgConf,'%','Jistota ensemblu'):'') +
+    (avgSea!=null?tile('#0e6d96','🌊',avgSea,'°C','Moře průměr'):'');
+}
+
+// ── PROBABILITY TABLE ──
+var EVENTS = [
+  { ico:'🌧️', name:'Nějaký déšť', thr:'> 0,5 mm/den', color:'#0e6d96',
+    ens:function(m){return m.precip!=null&&m.precip>0.5}, klim:function(r){return r.rain!=null&&r.rain>0.5} },
+  { ico:'☔', name:'Vydatný déšť', thr:'> 10 mm/den', color:'#0e6d96',
+    ens:function(m){return m.precip!=null&&m.precip>10}, klim:function(r){return r.rain!=null&&r.rain>10} },
+  { ico:'🔥', name:'Horko', thr:'max > 30 °C', color:'#b83200',
+    ens:function(m){return m.tmax!=null&&m.tmax>30}, klim:function(r){return r.tmax!=null&&r.tmax>30} },
+  { ico:'🥵', name:'Dusno (Real Feel)', thr:'pocitová > 33 °C', color:'#c94010',
+    ens:function(m){return m.rfmax!=null&&m.rfmax>33}, klim:function(r){return r.rf!=null&&r.rf>33} },
+  { ico:'🏖️', name:'Ideální pláž', thr:'25–32 °C · déšť < 1 mm', color:'#3d6800', good:true,
+    ens:function(m){return m.tmax!=null&&m.tmax>=25&&m.tmax<=32&&m.precip!=null&&m.precip<1},
+    klim:function(r){return r.tmax!=null&&r.tmax>=25&&r.tmax<=32&&r.rain!=null&&r.rain<1} },
+  { ico:'🧥', name:'Chladno', thr:'max < 22 °C', color:'#0e6d96',
+    ens:function(m){return m.tmax!=null&&m.tmax<22}, klim:function(r){return r.tmax!=null&&r.tmax<22} },
+  { ico:'💨', name:'Silné nárazy', thr:'> 50 km/h', color:'#4e5d6e',
+    ens:function(m){return m.gust!=null&&m.gust>50}, klim:function(r){return r.gust!=null&&r.gust>50} },
+];
+
+function renderProbTable() {
+  if (!_ens) return;
+  var tbody = document.getElementById('prob-body');
+  tbody.innerHTML = '';
+  EVENTS.forEach(function(ev) {
+    var tr = document.createElement('tr');
+    var cells = '<td><div class="prob-jev"><span class="ico">'+ev.ico+'</span>' +
+      '<span>'+ev.name+'<span class="thr">'+ev.thr+'</span></span></div></td>';
+    ISO_DAYS.forEach(function(iso) {
+      var e = _ens[iso], p=null, n=null;
+      if (e) {
+        var hits=0, tot=0;
+        e.members.forEach(function(m){tot++;if(ev.ens(m))hits++});
+        if (tot) { p=hits/tot; n=tot; }
+      }
+      var kp=null;
+      if (ev.klim && _climateProb[iso] && _climateProb[iso].length) {
+        var rows=_climateProb[iso], kh=0, kt=0;
+        rows.forEach(function(r){kt++;if(ev.klim(r))kh++});
+        if (kt) kp = kh/kt;
+      }
+      var col = p!=null&&p>=0.15 ? ev.color : '#4e5d6e';
+      var pct = p==null?'—':Math.round(p*100)+' %';
+      var op = p==null?0:Math.max(0.22,p);
+      cells += '<td class="prob-cell">' +
+        '<div class="prob-val" style="color:'+col+'">'+pct+'</div>' +
+        '<div class="prob-bar"><i style="width:'+(p==null?0:p*100)+'%;background:'+ev.color+';opacity:'+op+'"></i></div>' +
+        '<div class="prob-klim">'+(kp==null?'&nbsp;':'klim. '+Math.round(kp*100)+' %')+'</div></td>';
+    });
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+
+  // ens strip
+  var strip = document.getElementById('ens-strip');
+  if (strip) {
+    var counts = ISO_DAYS.map(function(iso){return _ens[iso]?_ens[iso].n:0});
+    var minN=Math.min.apply(null,counts), maxN=Math.max.apply(null,counts);
+    var klimN = _climateProb[ISO_DAYS[0]] ? _climateProb[ISO_DAYS[0]].length : 0;
+    strip.innerHTML =
+      '<div>Členů ensemblu: <b>'+(minN===maxN?minN:minN+'–'+maxN)+'</b></div>' +
+      '<div>Modely: <b>GEFS 0,5° + ECMWF IFS 0,25°</b></div>' +
+      (klimN?'<div>Klimatologie: <b>'+klimN+' let</b> (2014–2025)</div>':'');
+  }
+  document.getElementById('prob-loading').style.display='none';
+  document.getElementById('prob-content').style.display='block';
+}
+
+// ── SPREAD ──
+function renderSpread() {
+  if (!_ens) return;
+  var grid = document.getElementById('spread-grid');
+  grid.innerHTML = '';
+  var allP10=[], allP90=[];
+  ISO_DAYS.forEach(function(iso) {
+    var e=_ens[iso]; if (!e||!e.stats.tmax) return;
+    allP10.push(e.stats.tmax.p10); allP90.push(e.stats.tmax.p90);
+  });
+  if (!allP10.length) return;
+  var scaleMin = Math.floor(Math.min.apply(null,allP10)-2);
+  var scaleMax = Math.ceil(Math.max.apply(null,allP90)+2);
+  var scaleRange = scaleMax-scaleMin;
+
+  ISO_DAYS.forEach(function(iso, i) {
+    var e=_ens[iso]; if (!e||!e.stats.tmax) return;
+    var s = e.stats.tmax;
+    var barH = 120;
+    function yPos(v) { return barH - ((v-scaleMin)/scaleRange*barH); }
+
+    var card = document.createElement('div');
+    card.className = 'spread-card';
+    var p10top=yPos(s.p90), p10h=yPos(s.p10)-p10top;
+    var p25top=yPos(s.p75), p25h=yPos(s.p25)-p25top;
+    var medTop=yPos(s.med)-4;
+    card.innerHTML =
+      '<div class="sp-day">'+DAY_LABELS[i]+'</div>' +
+      '<div class="sp-bar" style="height:'+barH+'px">' +
+        '<div class="sp-range sp-p1090" style="top:'+p10top+'px;height:'+p10h+'px"></div>' +
+        '<div class="sp-range sp-p2575" style="top:'+p25top+'px;height:'+p25h+'px"></div>' +
+        '<div class="sp-med" style="top:'+medTop+'px"></div>' +
+      '</div>' +
+      '<div class="sp-med-label">'+s.med.toFixed(1)+'°</div>' +
+      '<div class="sp-labels"><span>'+s.p10.toFixed(0)+'°</span><span>'+s.p90.toFixed(0)+'°</span></div>';
+    grid.appendChild(card);
+  });
+  document.getElementById('spread-section').style.display='block';
+}
+
+// ── RAIN CHART (Canvas) ──
+function renderRainChart() {
+  var canvas = document.getElementById('chart-rain');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.offsetWidth, H = 200;
+  canvas.width = W*2; canvas.height = H*2;
+  ctx.scale(2,2);
+
+  var rainVals=[], probVals=[];
+  ISO_DAYS.forEach(function(iso) {
+    var e=_ens&&_ens[iso], st=e?e.stats:null;
+    rainVals.push(st&&st.precip?st.precip.med:0);
+    if (e) {
+      var wet=e.members.filter(function(m){return m.precip!=null&&m.precip>0.5}).length;
+      probVals.push(Math.round(100*wet/e.n));
+    } else probVals.push(0);
+  });
+
+  var maxR = Math.max.apply(null,rainVals.concat([2]));
+  var pad={t:20,r:50,b:30,l:40};
+  var cw=W-pad.l-pad.r, ch=H-pad.t-pad.b;
+  var barW=cw/6*0.6, gap=cw/6;
+
+  // axes
+  ctx.strokeStyle='#c4cad6'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,H-pad.b); ctx.lineTo(W-pad.r,H-pad.b); ctx.stroke();
+
+  // bars
+  var cs = getComputedStyle(document.documentElement);
+  var textCol = cs.getPropertyValue('--text').trim()||'#0c1118';
+  var mutedCol = cs.getPropertyValue('--muted').trim()||'#4e5d6e';
+
+  for (var i=0; i<6; i++) {
+    var x = pad.l + i*gap + gap/2 - barW/2;
+    var bh = maxR>0 ? (rainVals[i]/maxR)*ch : 0;
+    var y = H-pad.b-bh;
+    ctx.fillStyle = 'rgba(14,109,150,0.2)';
+    ctx.fillRect(x,y,barW,bh);
+    ctx.strokeStyle='#0e6d96'; ctx.lineWidth=1.5;
+    ctx.strokeRect(x,y,barW,bh);
+
+    // label
+    ctx.fillStyle=textCol;
+    ctx.font='600 11px system-ui'; ctx.textAlign='center';
+    ctx.fillText(rainVals[i].toFixed(1), x+barW/2, y-5);
+
+    // day label
+    ctx.fillStyle=mutedCol;
+    ctx.font='10px monospace';
+    ctx.fillText(DAY_LABELS[i].split(' ')[1], pad.l+i*gap+gap/2, H-pad.b+16);
+
+    // prob line
+    var py = H-pad.b - (probVals[i]/100)*ch;
+    var px = pad.l + i*gap + gap/2;
+    ctx.fillStyle='#b83200';
+    ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2); ctx.fill();
+    if (i>0) {
+      var ppx = pad.l+(i-1)*gap+gap/2;
+      var ppy = H-pad.b-(probVals[i-1]/100)*ch;
+      ctx.strokeStyle='#b83200'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(ppx,ppy); ctx.lineTo(px,py); ctx.stroke();
+    }
+    // prob label
+    ctx.fillStyle='#b83200'; ctx.font='600 10px monospace';
+    ctx.fillText(probVals[i]+'%', px, py-8);
+  }
+
+  // y-axis labels
+  ctx.fillStyle=mutedCol; ctx.font='10px monospace'; ctx.textAlign='right';
+  for (var v=0; v<=maxR; v+=Math.max(1,Math.ceil(maxR/4))) {
+    var yy = H-pad.b-(v/maxR)*ch;
+    ctx.fillText(v+' mm', pad.l-5, yy+3);
+  }
+  // right axis
+  ctx.textAlign='left';
+  [0,25,50,75,100].forEach(function(p) {
+    var yy=H-pad.b-(p/100)*ch;
+    ctx.fillText(p+'%', W-pad.r+5, yy+3);
+  });
+}
+
+// ── WATER STRIP ──
+function renderWater() {
+  var strip = document.getElementById('waterStrip');
+  strip.innerHTML = '';
+  ISO_DAYS.forEach(function(iso, i) {
+    var sea = _marine[iso]!=null ? Math.round(_marine[iso]) : '~25';
+    strip.innerHTML += '<div class="water-day"><div class="w-day">'+DAY_LABELS[i].split(' ')[1]+'</div><div class="w-temp">'+sea+'<span class="unit">°C</span></div></div>';
+  });
+}
+
+// ── CLIMATE ──
+function renderClimate() {
+  var cards = document.getElementById('climate-cards');
+  var tbody = document.getElementById('climate-body');
+  if (!_climateProb[ISO_DAYS[0]] || !_climateProb[ISO_DAYS[0]].length) return;
+
+  document.getElementById('climate-loading').style.display='none';
+  document.getElementById('climate-content').style.display='block';
+
+  // summary cards
+  function avg(arr,key) {
+    var v=arr.map(function(r){return r[key]}).filter(function(v){return v!=null});
+    return v.length?v.reduce(function(a,b){return a+b},0)/v.length:null;
+  }
+  function cmax(arr,key) {
+    var v=arr.map(function(r){return r[key]}).filter(function(v){return v!=null});
+    return v.length?Math.max.apply(null,v):null;
+  }
+
+  var allRows = [];
+  ISO_DAYS.forEach(function(iso){allRows=allRows.concat(_climateProb[iso]||[])});
+  var avgMax=avg(allRows,'tmax'), avgMin=avg(allRows,'tmin'), avgRain=avg(allRows,'rain');
+  var wetDays=allRows.filter(function(r){return r.rain!=null&&r.rain>0.5}).length;
+  var pWet=allRows.length?Math.round(100*wetDays/allRows.length):null;
+  var recHi=cmax(allRows,'tmax'), recLo=allRows.length?Math.min.apply(null,allRows.map(function(r){return r.tmin}).filter(function(v){return v!=null})):null;
+
+  function tile(bar,ico,val,unit,label) {
+    return '<div class="stat-card"><div class="stat-card-bar" style="background:'+bar+'"></div>' +
+      '<div class="stat-icon">'+ico+'</div><div class="stat-value">'+val+'<span class="unit">'+unit+'</span></div>' +
+      '<div class="stat-label">'+label+'</div></div>';
+  }
+  cards.innerHTML =
+    tile('#0e6d96','🌡️',avgMax!=null?avgMax.toFixed(1):'—','°C','Prům. max (klim.)') +
+    tile('#b83200','🔥',recHi!=null?recHi.toFixed(1):'—','°C','Rekord max') +
+    tile('#0e6d96','❄️',recLo!=null?recLo.toFixed(1):'—','°C','Rekord min') +
+    tile('#3d6800','💧',avgRain!=null?avgRain.toFixed(1):'—','mm','Prům. srážky/den') +
+    (pWet!=null?tile('#4e5d6e','🌧️',pWet,'%','Dní s deštěm'):'') +
+    tile('#4e5d6e','📅',_climateProb[ISO_DAYS[0]].length,'let','Klimatologie');
+
+  // table: rows by year
+  tbody.innerHTML = '';
+  var years = [];
+  for (var y=2014; y<=2025; y++) years.push(y);
+  years.reverse().forEach(function(year) {
+    var tr = document.createElement('tr');
+    var cells = '<td style="font-weight:600">'+year+'</td>';
+    var dayTemps=[], dayRains=[];
+    ISO_DAYS.forEach(function(iso) {
+      var rows = _climateProb[iso]||[];
+      var row = rows.find(function(r){return r.year===year});
+      var tmax = row&&row.tmax!=null?row.tmax.toFixed(1)+'°':'—';
+      cells += '<td>'+tmax+'</td>';
+      if (row&&row.tmax!=null) dayTemps.push(row.tmax);
+      if (row&&row.rain!=null) dayRains.push(row.rain);
+    });
+    var avgT = dayTemps.length?dayTemps.reduce(function(a,b){return a+b},0)/dayTemps.length:null;
+    var sumR = dayRains.reduce(function(a,b){return a+b},0);
+    cells += '<td style="font-weight:600">'+(avgT!=null?avgT.toFixed(1)+'°':'—')+'</td>';
+    cells += '<td class="muted">'+sumR.toFixed(1)+' mm</td>';
+    tr.innerHTML = cells;
+    tbody.appendChild(tr);
+  });
+
+  // re-render prob table with climate data
+  if (_ens) renderProbTable();
+}
+
+// ── MAIN INIT ──
+var startTime = Date.now();
+
+Promise.all([loadEnsemble(), loadForecast(), loadMarine()])
+  .then(function() {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('content').style.display='block';
+
+    var src = _ens ? 'ensemble' : 'forecast';
+    var nMembers = _ens && _ens[ISO_DAYS[0]] ? _ens[ISO_DAYS[0]].n : 0;
+    document.getElementById('tag-source').textContent = src + (nMembers?' · '+nMembers+' členů':'');
+    document.getElementById('hint-src').textContent = nMembers ? nMembers+' členů ensemblu' : 'deterministický model';
+    var now = new Date();
+    document.getElementById('tag-updated').textContent = 'Aktualizace: '+now.getDate()+'.'+(now.getMonth()+1)+'. '+now.getFullYear()+' '+now.getHours()+':'+('0'+now.getMinutes()).slice(-2);
+
+    renderCards();
+    renderSummary();
+    if (_ens) { renderProbTable(); renderSpread(); }
+    renderRainChart();
+    renderWater();
+  })
+  .catch(function(err) {
+    document.getElementById('loading').innerHTML =
+      '<div class="loading-text">Chyba: '+err.message+'</div>';
+  });
+
+loadClimate();
+</script>
+</body>
+</html>
