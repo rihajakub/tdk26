@@ -150,6 +150,12 @@
   .water-day .w-day { font-family: 'SF Mono', monospace; font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
   .water-day .w-temp { font-size: 22px; font-weight: 700; color: var(--accent); }
   .water-day .w-temp .unit { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .water-day.water-today { background: var(--accent); }
+  .water-day.water-today .w-day, .water-day.water-today .w-temp, .water-day.water-today .w-temp .unit { color: #fff; }
+  .w-tag { font-family: 'SF Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; opacity: 0.75; }
+  .w-tag-meas { color: #fff; }
+  .water-day:not(.water-today) .w-tag-meas { color: var(--accent3); opacity: 1; }
+  .w-tag-est { color: var(--muted); }
 
   /* Info / packing */
   .info-box { background: var(--surface); padding: 20px 24px; margin-bottom: 48px; border-left: 3px solid var(--accent); box-shadow: var(--shadow); }
@@ -460,6 +466,9 @@ function loadForecast() {
 // jde na 16). Pro dny mimo její dosah dopočítáme medián ze seasonal API,
 // která nese i sea_surface_temperature_max s 51 členy ensemblu — teplota moře
 // je na tomhle horizontu velmi stabilní veličina, takže i jeden medián stačí.
+var _marineToday = null;
+var _marineMeasured = {};
+
 function loadMarine() {
   var fUrl = 'https://marine-api.open-meteo.com/v1/marine' +
     '?latitude='+LAT+'&longitude='+LON +
@@ -472,9 +481,13 @@ function loadMarine() {
 
   return omFetch(60, fUrl).then(function(data) {
     if (data.daily) {
+      // první den v odpovědi = dnešek, bereme jako aktuální naměřenou teplotu
+      if (data.daily.time.length && data.daily.sea_surface_temperature_max[0]!=null) {
+        _marineToday = { date: data.daily.time[0], val: data.daily.sea_surface_temperature_max[0] };
+      }
       data.daily.time.forEach(function(dt, i) {
         var v = data.daily.sea_surface_temperature_max[i];
-        if (ISO_DAYS.indexOf(dt)!==-1 && v!=null) _marine[dt] = v;
+        if (ISO_DAYS.indexOf(dt)!==-1 && v!=null) { _marine[dt]=v; _marineMeasured[dt]=true; }
       });
     }
   }).catch(function(){}).then(function() {
@@ -488,7 +501,7 @@ function loadMarine() {
         var vals = Object.keys(d).filter(function(k) {
           return k.indexOf('sea_surface_temperature_max')===0 && d[k][i]!=null;
         }).map(function(k){return d[k][i]}).sort(function(a,b){return a-b});
-        if (vals.length) _marine[dt] = median(vals);
+        if (vals.length) { _marine[dt] = median(vals); _marineMeasured[dt] = false; }
       });
     }).catch(function(){});
   });
@@ -634,7 +647,8 @@ function renderSummary() {
     tile('#0e6d96','💧',rainSum.toFixed(1),'mm','Srážky za 6 dní') +
     tile('#b83200','🌧️',Math.round(maxPRain*100),'%','Max P(déšť) za den') +
     (avgConf!=null?tile('#4e5d6e','🎯',avgConf,'%','Jistota ensemblu'):'') +
-    (avgSea!=null?tile('#0e6d96','🌊',avgSea,'°C','Moře průměr'):'');
+    (_marineToday!=null?tile('#0e6d96','🌊',_marineToday.val.toFixed(1),'°C','Moře dnes'):'') +
+    (avgSea!=null?tile('#4e5d6e','🌊',avgSea,'°C','Moře na dovolené (odhad)'):'');
 }
 
 // ── PROBABILITY TABLE ──
@@ -829,9 +843,17 @@ function renderRainChart() {
 function renderWater() {
   var strip = document.getElementById('waterStrip');
   strip.innerHTML = '';
+  if (_marineToday) {
+    strip.innerHTML += '<div class="water-day water-today"><div class="w-day">Dnes '+_marineToday.date.slice(8,10)+'.'+_marineToday.date.slice(5,7)+'.</div>' +
+      '<div class="w-temp">'+_marineToday.val.toFixed(1)+'<span class="unit">°C</span></div>' +
+      '<div class="w-tag w-tag-meas">měření</div></div>';
+  }
   ISO_DAYS.forEach(function(iso, i) {
     var sea = _marine[iso]!=null ? Math.round(_marine[iso]) : '~25';
-    strip.innerHTML += '<div class="water-day"><div class="w-day">'+DAY_LABELS[i].split(' ')[1]+'</div><div class="w-temp">'+sea+'<span class="unit">°C</span></div></div>';
+    var measured = _marineMeasured[iso];
+    var tag = measured===true ? '<div class="w-tag w-tag-meas">měření</div>' :
+              measured===false ? '<div class="w-tag w-tag-est">odhad</div>' : '';
+    strip.innerHTML += '<div class="water-day"><div class="w-day">'+DAY_LABELS[i].split(' ')[1]+'</div><div class="w-temp">'+sea+'<span class="unit">°C</span></div>'+tag+'</div>';
   });
 }
 
